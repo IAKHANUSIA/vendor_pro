@@ -7,6 +7,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Flutter APK
@@ -36,9 +39,32 @@ jobs:
       - name: 🏗️ Build Release APK
         run: flutter build apk --release
 
+      - name: 🏷️ Rename APK for easy download
+        run: cp build/app/outputs/flutter-apk/app-release.apk VendorPro.apk
+
       - name: 📤 Upload Release APK as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Vendor-Pro-Release-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: VendorPro.apk
           if-no-files-found: error
+
+      - name: 🚀 Publish Direct GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          tag_name: v1.0.0
+          name: "Vendor Pro v1.0.0 (Android APK)"
+          body: |
+            ## 📰 Vendor Pro - ન્યૂઝપેપર વિતરણ અને બિલિંગ મેનેજમેન્ટ સિસ્ટમ
+            - ૧૦૦% ઓફલાઇન સપોર્ટ (No Internet Required)
+            - ડેપો ખરીદી પત્રક (PTR ખરીદ ભાવ અને નફો)
+            - બોનસ પેપર્સ (વાર મુજબ અને બધા ગ્રાહકો)
+            - ૧-ક્લિક WhatsApp બિલિંગ મેસેજ અને UPI QR કોડ
+            - A4 4-in-1 પ્રિન્ટિંગ
+            
+            ### 📲 ડાઉનલોડ કરો:
+            નીચે આપેલ **`VendorPro.apk`** ફાઇલ પર ક્લિક કરીને સીધું જ તમારા ફોનમાં ઇન્સ્ટોલ કરો.
+          files: VendorPro.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
