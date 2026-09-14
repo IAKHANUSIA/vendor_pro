@@ -1,0 +1,709 @@
+import 'dart:convert';
+import '../models/firm.dart';
+import '../models/item.dart';
+import '../models/route.dart';
+import '../models/salesman.dart';
+import '../models/customer.dart';
+import '../models/vacation.dart';
+import '../models/mass_issue.dart';
+import '../models/bill.dart';
+import '../models/expense.dart';
+
+class DepotItemDemand {
+  final int id;
+  final String code;
+  final String name;
+  final String type;
+  final double saleRate;
+  final double purchaseRate;
+  int customerCopies;
+  int extraCopies;
+  int totalCopies;
+  double purchaseAmount;
+  double salesValue;
+  double profit;
+  bool isHoliday;
+
+  DepotItemDemand({
+    required this.id,
+    required this.code,
+    required this.name,
+    this.type = 'daily',
+    this.saleRate = 5.0,
+    this.purchaseRate = 3.32,
+    this.customerCopies = 0,
+    this.extraCopies = 0,
+    this.totalCopies = 0,
+    this.purchaseAmount = 0.0,
+    this.salesValue = 0.0,
+    this.profit = 0.0,
+    this.isHoliday = false,
+  });
+}
+
+class DepotPurchaseSheet {
+  final String date;
+  final int dayOfWeek;
+  final int totalCustomerCopies;
+  final int totalExtraCopies;
+  final int totalCopies;
+  final double totalPurchaseAmount;
+  final double totalSalesValue;
+  final double totalProfit;
+  final List<DepotItemDemand> items;
+
+  DepotPurchaseSheet({
+    required this.date,
+    required this.dayOfWeek,
+    required this.totalCustomerCopies,
+    required this.totalExtraCopies,
+    required this.totalCopies,
+    required this.totalPurchaseAmount,
+    required this.totalSalesValue,
+    required this.totalProfit,
+    required this.items,
+  });
+}
+
+class CustomerLedgerEntry {
+  final String date;
+  final String description;
+  final String type; // 'bill', 'payment', 'opening'
+  final double debit; // increases balance
+  final double credit; // decreases balance
+  final double runningBalance;
+  final String referenceNo;
+
+  CustomerLedgerEntry({
+    required this.date,
+    required this.description,
+    required this.type,
+    required this.debit,
+    required this.credit,
+    required this.runningBalance,
+    required this.referenceNo,
+  });
+}
+
+class DatabaseService {
+  static final DatabaseService instance = DatabaseService._internal();
+  DatabaseService._internal();
+
+  Firm firm = Firm();
+  final List<Item> items = [];
+  final List<DeliveryRoute> routes = [];
+  final List<Salesman> salesmen = [];
+  final List<Customer> customers = [];
+  final List<Vacation> vacations = [];
+  final List<PaperHoliday> paperHolidays = [];
+  final List<MassIssue> massIssues = [];
+  final List<Bill> bills = [];
+  final List<Payment> payments = [];
+  final List<Expense> expenses = [];
+
+  bool isInitialized = false;
+
+  Future<void> init() async {
+    if (isInitialized) return;
+    _seedDefaultData();
+    isInitialized = true;
+  }
+
+  void _seedDefaultData() {
+    firm = Firm(
+      name: 'Vendor Pro - ન્યૂઝપેપર એજન્સી',
+      ownerName: 'ઇમરાન ખાનુશિયા',
+      phone: '9876543210',
+      address: 'સ્ટેશન રોડ, પાલનપુર, ગુજરાત',
+      upiId: 'vendorpro@upi',
+      billNotes: 'મહેરબાની કરીને ૧૦ તારીખ પહેલા બિલ ભરી દેવું. આભાર!',
+    );
+
+    routes.addAll([
+      DeliveryRoute(id: 1, code: 'R1', name: 'મેઇન બજાર લાઇન', salesmanId: 1),
+      DeliveryRoute(id: 2, code: 'R2', name: 'સ્ટેશન રોડ લાઇન', salesmanId: 2),
+      DeliveryRoute(id: 3, code: 'R3', name: 'સોસાયટી લાઇન', salesmanId: 1),
+    ]);
+
+    salesmen.addAll([
+      Salesman(id: 1, name: 'રમેશભાઈ પરમાર', mobile: '9898012345'),
+      Salesman(id: 2, name: 'દિનેશભાઈ સોલંકી', mobile: '9898067890'),
+    ]);
+
+    items.addAll([
+      Item(
+        id: 1, 
+        code: 'GS', 
+        name: 'ગુજરાત સમાચાર', 
+        defaultRate: 5.0, 
+        sundayRate: 6.0,
+        defaultPurchaseRate: 3.32,
+        sundayPurchaseRate: 3.98,
+      ),
+      Item(
+        id: 2, 
+        code: 'DB', 
+        name: 'દિવ્ય ભાસ્કર', 
+        defaultRate: 5.0, 
+        sundayRate: 6.0,
+        defaultPurchaseRate: 3.32,
+        sundayPurchaseRate: 3.98,
+      ),
+      Item(
+        id: 3, 
+        code: 'SANJ', 
+        name: 'સાંજ સમાચાર', 
+        defaultRate: 3.0, 
+        sundayRate: 3.0,
+        defaultPurchaseRate: 2.0,
+        sundayPurchaseRate: 2.0,
+      ),
+      Item(
+        id: 4, 
+        code: 'SANDESH', 
+        name: 'સંદેશ', 
+        defaultRate: 5.0, 
+        sundayRate: 6.0,
+        defaultPurchaseRate: 3.32,
+        sundayPurchaseRate: 3.98,
+      ),
+    ]);
+
+    customers.addAll([
+      Customer(
+        id: 1,
+        custNo: '101',
+        name: 'પટેલ રમેશભાઈ કેશવલાલ',
+        phone: '9825011223',
+        routeId: 1,
+        sequenceNo: '1',
+        buildingAddress: '૧૨, શાંતિનિકેતન સોસાયટી, બજાર રોડ',
+        subscriptions: [1, 2],
+        billingType: 'daily',
+        deliveryCharge: 10.0,
+        openingBalance: 0.0,
+        currentBalance: 320.0,
+      ),
+      Customer(
+        id: 2,
+        custNo: '102',
+        name: 'શાહ મુકેશકુમાર શાંતિલાલ',
+        phone: '9898122334',
+        routeId: 1,
+        sequenceNo: '2',
+        buildingAddress: '૪૫, મહાવીર નગર, સ્ટેશન રોડ',
+        subscriptions: [1],
+        billingType: 'daily',
+        deliveryCharge: 10.0,
+        openingBalance: 0.0,
+        currentBalance: 165.0,
+      ),
+      Customer(
+        id: 3,
+        custNo: '103',
+        name: 'દેસાઈ મહેશભાઈ પ્રભુદાસ',
+        phone: '9426033445',
+        routeId: 2,
+        sequenceNo: '1',
+        buildingAddress: 'બી-૫, દર્શન એપાર્ટમેન્ટ',
+        subscriptions: [2, 4],
+        billingType: 'daily',
+        deliveryCharge: 10.0,
+        openingBalance: 0.0,
+        currentBalance: 320.0,
+      ),
+    ]);
+  }
+
+  // 1. Depot Purchase Sheet Engine
+  DepotPurchaseSheet getDepotPurchaseSheet(String dateStr, [Map<int, int> customExtra = const {}]) {
+    final targetDate = DateTime.tryParse('${dateStr}T12:00:00') ?? DateTime.now().add(const Duration(days: 1));
+    final dayOfWeek = targetDate.weekday % 7; // 0 = Sun, 1 = Mon ...
+
+    final todaysMassIssues = massIssues.where((m) => m.date == dateStr).toList();
+    final hasHolidayForOthers = todaysMassIssues.any((m) => m.holidayForOthers);
+    final massIssueItemIds = todaysMassIssues.map((m) => m.itemId).toSet();
+
+    final itemDemandMap = <int, DepotItemDemand>{};
+
+    for (final it in items) {
+      bool isHoliday = paperHolidays.any((h) => h.isActiveOn(it.id, dateStr));
+      if (hasHolidayForOthers && !massIssueItemIds.contains(it.id)) {
+        isHoliday = true;
+      }
+
+      final rates = it.getRateForDay(dayOfWeek, dateStr);
+      final matchingMi = todaysMassIssues.cast<MassIssue?>().firstWhere((m) => m?.itemId == it.id, orElse: () => null);
+
+      final saleRate = (matchingMi != null && matchingMi.rate >= 0) ? matchingMi.rate : rates.sale;
+      final purchaseRate = (matchingMi != null && matchingMi.purchaseRate >= 0) ? matchingMi.purchaseRate : rates.purchase;
+      final extra = customExtra[it.id] ?? 0;
+
+      itemDemandMap[it.id] = DepotItemDemand(
+        id: it.id,
+        code: it.code,
+        name: it.name,
+        type: it.type,
+        saleRate: saleRate,
+        purchaseRate: purchaseRate,
+        extraCopies: extra,
+        isHoliday: isHoliday,
+      );
+    }
+
+    for (final cust in customers) {
+      if (cust.status != 'active') {
+        if (cust.inactiveDate != null && dateStr.compareTo(cust.inactiveDate!) > 0) continue;
+      }
+      final onVacation = vacations.any((v) => v.customerId == cust.id && v.isActiveOn(dateStr));
+      if (onVacation) continue;
+
+      final customerItemsForDay = <int>{};
+      final hasPaperOnDay = cust.hasAnyPaperOnDay(dayOfWeek, dateStr);
+
+      for (final itemId in cust.subscriptionItemIds) {
+        if (cust.isSubscribedOnDay(itemId, dayOfWeek, dateStr)) {
+          if (!hasHolidayForOthers) {
+            final demand = itemDemandMap[itemId];
+            if (demand != null && !demand.isHoliday) {
+              demand.customerCopies += 1;
+              customerItemsForDay.add(itemId);
+            }
+          }
+        }
+      }
+
+      // Inject mass issues
+      for (final mi in todaysMassIssues) {
+        final isEligible = (mi.targetType == 'day_wise') ? hasPaperOnDay : true;
+        if (isEligible && !customerItemsForDay.contains(mi.itemId)) {
+          final demand = itemDemandMap[mi.itemId];
+          if (demand != null) {
+            demand.customerCopies += 1;
+            customerItemsForDay.add(mi.itemId);
+          }
+        }
+      }
+    }
+
+    final rows = itemDemandMap.values.map((r) {
+      r.totalCopies = r.customerCopies + r.extraCopies;
+      r.purchaseAmount = double.parse((r.totalCopies * r.purchaseRate).toStringAsFixed(2));
+      r.salesValue = double.parse((r.totalCopies * r.saleRate).toStringAsFixed(2));
+      r.profit = double.parse((r.salesValue - r.purchaseAmount).toStringAsFixed(2));
+      return r;
+    }).toList();
+
+    return DepotPurchaseSheet(
+      date: dateStr,
+      dayOfWeek: dayOfWeek,
+      totalCustomerCopies: rows.fold(0, (sum, r) => sum + r.customerCopies),
+      totalExtraCopies: rows.fold(0, (sum, r) => sum + r.extraCopies),
+      totalCopies: rows.fold(0, (sum, r) => sum + r.totalCopies),
+      totalPurchaseAmount: rows.fold(0.0, (sum, r) => sum + r.purchaseAmount),
+      totalSalesValue: rows.fold(0.0, (sum, r) => sum + r.salesValue),
+      totalProfit: rows.fold(0.0, (sum, r) => sum + r.profit),
+      items: rows,
+    );
+  }
+
+  // 2. Monthly Billing Engine
+  List<Bill> calculateMonthlyBills(int year, int month, {
+    String format = 'sequential',
+    String prefix = '',
+    int startNum = 1001,
+    int padding = 0,
+    String sortBy = 'salesman_delivery',
+  }) {
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    final monthKey = '$year-${month.toString().padLeft(2, '0')}';
+
+    // Remove existing bills for this monthKey
+    bills.removeWhere((b) => b.monthYear == monthKey);
+
+    final itemMap = {for (var i in items) i.id: i};
+    final routeMap = {for (var r in routes) r.id: r};
+    final salesmanMap = {for (var s in salesmen) s.id: s};
+
+    final sortedCustomers = List<Customer>.from(customers);
+    sortedCustomers.sort((a, b) {
+      final rA = routeMap[a.routeId];
+      final rB = routeMap[b.routeId];
+
+      if (sortBy == 'salesman_delivery') {
+        final smA = salesmanMap[rA?.salesmanId]?.name ?? '';
+        final smB = salesmanMap[rB?.salesmanId]?.name ?? '';
+        if (smA != smB) return smA.compareTo(smB);
+        final seqA = int.tryParse(a.sequenceNo) ?? 999999;
+        final seqB = int.tryParse(b.sequenceNo) ?? 999999;
+        return seqA.compareTo(seqB);
+      } else if (sortBy == 'route_delivery') {
+        final rCodeA = rA?.code ?? '';
+        final rCodeB = rB?.code ?? '';
+        if (rCodeA != rCodeB) return rCodeA.compareTo(rCodeB);
+        final seqA = int.tryParse(a.sequenceNo) ?? 999999;
+        final seqB = int.tryParse(b.sequenceNo) ?? 999999;
+        return seqA.compareTo(seqB);
+      } else {
+        final seqA = int.tryParse(a.sequenceNo) ?? 999999;
+        final seqB = int.tryParse(b.sequenceNo) ?? 999999;
+        return seqA.compareTo(seqB);
+      }
+    });
+
+    int billIndex = 0;
+    final generatedBills = <Bill>[];
+
+    for (final cust in sortedCustomers) {
+      if (cust.status != 'active') {
+        if (cust.inactiveDate == null || cust.inactiveDate!.compareTo('$monthKey-01') < 0) {
+          continue;
+        }
+      }
+
+      double billTotal = 0.0;
+      double vacationDeductionTotal = 0.0;
+      int vacationDaysCount = 0;
+      int deliveryDaysCount = 0;
+      final paperBreakdown = <String, PaperBreakdownItem>{};
+
+      if (cust.billingType == 'fixed' && cust.fixedMonthlyAmount > 0) {
+        billTotal = cust.fixedMonthlyAmount;
+        deliveryDaysCount = daysInMonth;
+        paperBreakdown['fixed'] = PaperBreakdownItem(
+          id: 0,
+          name: 'માસિક ફિક્સ કોન્ટ્રાક્ટ (Fixed)',
+          code: 'FIXED',
+          daysCount: daysInMonth,
+          totalCost: billTotal,
+          startDate: '$monthKey-01',
+          endDate: '$monthKey-${daysInMonth.toString().padLeft(2, '0')}',
+        );
+      } else {
+        // Daily calculation
+        for (int day = 1; day <= daysInMonth; day++) {
+          final currentDate = DateTime(year, month, day, 12, 0, 0);
+          final dateStr = '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+          final dayOfWeek = currentDate.weekday % 7; // 0=Sun, 1=Mon...
+
+          if (cust.status == 'inactive' && cust.inactiveDate != null && dateStr.compareTo(cust.inactiveDate!) > 0) {
+            continue;
+          }
+
+          final isOnVacation = vacations.any((v) => v.customerId == cust.id && v.isActiveOn(dateStr));
+          double dayCost = 0.0;
+          final dayItems = <Map<String, dynamic>>[];
+          final todaysMassIssues = massIssues.where((m) => m.date == dateStr).toList();
+          final hasHolidayForOthers = todaysMassIssues.any((m) => m.holidayForOthers);
+          final hasPaperOnDay = cust.hasAnyPaperOnDay(dayOfWeek, dateStr);
+
+          for (final itemId in cust.subscriptionItemIds) {
+            if (cust.isSubscribedOnDay(itemId, dayOfWeek, dateStr)) {
+              if (!hasHolidayForOthers) {
+                final item = itemMap[itemId];
+                if (item == null || item.status == 'inactive') continue;
+
+                final isPaperHoliday = paperHolidays.any((h) => h.isActiveOn(item.id, dateStr));
+                if (isPaperHoliday) continue;
+
+                final rates = item.getRateForDay(dayOfWeek, dateStr);
+                dayCost += rates.sale;
+                dayItems.add({'id': item.id, 'name': item.name, 'code': item.code, 'rate': rates.sale});
+              }
+            }
+          }
+
+          for (final mi in todaysMassIssues) {
+            final isEligible = (mi.targetType == 'day_wise') ? hasPaperOnDay : true;
+            if (isEligible) {
+              final mRate = mi.rate;
+              dayCost += mRate;
+              final mItem = itemMap[mi.itemId];
+              dayItems.add({
+                'id': mi.itemId,
+                'name': '${mItem?.name ?? "વિશેષ આવૃત્તિ"} (Bonus)',
+                'code': mItem?.code ?? 'MI',
+                'rate': mRate,
+              });
+            }
+          }
+
+          if (isOnVacation) {
+            vacationDaysCount++;
+            vacationDeductionTotal += dayCost;
+          } else {
+            if (dayCost > 0 || dayItems.isNotEmpty) {
+              deliveryDaysCount++;
+            }
+            billTotal += dayCost;
+
+            for (final it in dayItems) {
+              final idKey = it['id'].toString();
+              if (!paperBreakdown.containsKey(idKey)) {
+                paperBreakdown[idKey] = PaperBreakdownItem(
+                  id: it['id'] as int,
+                  name: it['name'] as String,
+                  code: it['code'] as String,
+                  daysCount: 0,
+                  totalCost: 0.0,
+                  startDate: dateStr,
+                  endDate: dateStr,
+                );
+              }
+              final existing = paperBreakdown[idKey]!;
+              paperBreakdown[idKey] = PaperBreakdownItem(
+                id: existing.id,
+                name: existing.name,
+                code: existing.code,
+                daysCount: existing.daysCount + 1,
+                totalCost: double.parse((existing.totalCost + (it['rate'] as num)).toStringAsFixed(2)),
+                startDate: existing.startDate,
+                endDate: dateStr,
+              );
+            }
+          }
+        }
+      }
+
+      final newspaperAmount = double.parse(billTotal.toStringAsFixed(2));
+      final delCharge = cust.deliveryCharge;
+      final pastArrears = cust.currentBalance;
+      final netPayable = (newspaperAmount + delCharge + pastArrears).roundToDouble();
+
+      // Bill Number formatting
+      billIndex++;
+      final currentVal = startNum + (billIndex - 1);
+      final numFormatted = padding > 0 ? currentVal.toString().padLeft(padding, '0') : currentVal.toString();
+      
+      String assignedBillNo = '';
+      if (format == 'sequential') {
+        assignedBillNo = '$prefix$numFormatted';
+      } else if (format == 'month_seq') {
+        const mShort = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        final mStr = mShort[(month - 1).clamp(0, 11)];
+        final yStr = year.toString().substring(2);
+        assignedBillNo = prefix.isNotEmpty ? '$prefix$numFormatted' : '$mStr$yStr-$numFormatted';
+      } else {
+        assignedBillNo = '$prefix$numFormatted';
+      }
+
+      final bill = Bill(
+        id: DateTime.now().millisecondsSinceEpoch + billIndex,
+        customerId: cust.id,
+        customerNo: cust.custNo.isNotEmpty ? cust.custNo : cust.id.toString(),
+        customerName: cust.name,
+        routeId: cust.routeId,
+        monthYear: monthKey,
+        billNo: assignedBillNo,
+        deliveryDays: deliveryDaysCount,
+        vacationDays: vacationDaysCount,
+        vacationDeduction: vacationDeductionTotal,
+        newspaperAmount: newspaperAmount,
+        deliveryCharge: delCharge,
+        currentAmount: double.parse((newspaperAmount + delCharge).toStringAsFixed(2)),
+        pastBalance: pastArrears,
+        finalPayable: netPayable,
+        paymentReceived: 0.0,
+        paperBreakdown: paperBreakdown,
+        status: 'pending',
+      );
+
+      generatedBills.add(bill);
+      bills.add(bill);
+
+      // Update customer balance to the new bill amount
+      cust.currentBalance = netPayable;
+    }
+
+    return generatedBills;
+  }
+
+  // 3. Payment Processing
+  void recordPayment(Payment payment) {
+    payments.add(payment);
+
+    // Find customer
+    final cust = customers.cast<Customer?>().firstWhere((c) => c?.id == payment.customerId, orElse: () => null);
+    if (cust != null) {
+      cust.currentBalance = (cust.currentBalance - payment.amount).clamp(0.0, double.infinity);
+    }
+
+    // Allocate payment against customer's bills
+    double remainingAmount = payment.amount;
+    final custBills = bills.where((b) => b.customerId == payment.customerId && b.balanceDue > 0).toList();
+    custBills.sort((a, b) => a.monthYear.compareTo(b.monthYear));
+
+    for (final bill in custBills) {
+      if (remainingAmount <= 0) break;
+      final due = bill.balanceDue;
+      if (remainingAmount >= due) {
+        bill.paymentReceived += due;
+        bill.status = 'paid';
+        remainingAmount -= due;
+      } else {
+        bill.paymentReceived += remainingAmount;
+        bill.status = 'partial';
+        remainingAmount = 0;
+      }
+    }
+  }
+
+  // 4. Customer Ledger History
+  List<CustomerLedgerEntry> getCustomerLedger(int customerId) {
+    final cust = customers.cast<Customer?>().firstWhere((c) => c?.id == customerId, orElse: () => null);
+    if (cust == null) return [];
+
+    final entries = <CustomerLedgerEntry>[];
+    double balance = cust.openingBalance;
+
+    if (balance > 0) {
+      entries.add(CustomerLedgerEntry(
+        date: '2026-01-01',
+        description: 'શરૂઆતની બાકી રકમ (Opening Balance)',
+        type: 'opening',
+        debit: balance,
+        credit: 0.0,
+        runningBalance: balance,
+        referenceNo: '-',
+      ));
+    }
+
+    final custBills = bills.where((b) => b.customerId == customerId).toList();
+    final custPayments = payments.where((p) => p.customerId == customerId).toList();
+
+    final allEvents = <Map<String, dynamic>>[];
+    for (final b in custBills) {
+      allEvents.add({
+        'date': '${b.monthYear}-28',
+        'type': 'bill',
+        'ref': b.billNo,
+        'desc': 'માસિક બિલ (${b.monthYear})',
+        'amount': b.currentAmount,
+      });
+    }
+    for (final p in custPayments) {
+      allEvents.add({
+        'date': p.date,
+        'type': 'payment',
+        'ref': p.receiptNo.isNotEmpty ? p.receiptNo : 'REC-${p.id}',
+        'desc': 'ચૂકવણી મળેલ (${p.paymentMode.toUpperCase()}) ${p.notes.isNotEmpty ? "- ${p.notes}" : ""}',
+        'amount': p.amount,
+      });
+    }
+
+    allEvents.sort((a, b) => (a['date'] as String).compareTo(b['date'] as String));
+
+    for (final ev in allEvents) {
+      if (ev['type'] == 'bill') {
+        final amt = ev['amount'] as double;
+        balance += amt;
+        entries.add(CustomerLedgerEntry(
+          date: ev['date'] as String,
+          description: ev['desc'] as String,
+          type: 'bill',
+          debit: amt,
+          credit: 0.0,
+          runningBalance: balance,
+          referenceNo: ev['ref'] as String,
+        ));
+      } else {
+        final amt = ev['amount'] as double;
+        balance = (balance - amt).clamp(0.0, double.infinity);
+        entries.add(CustomerLedgerEntry(
+          date: ev['date'] as String,
+          description: ev['desc'] as String,
+          type: 'payment',
+          debit: 0.0,
+          credit: amt,
+          runningBalance: balance,
+          referenceNo: ev['ref'] as String,
+        ));
+      }
+    }
+
+    return entries;
+  }
+
+  // 5. Import JSON Backup
+  void importFromJsonString(String jsonContent) {
+    try {
+      final data = jsonDecode(jsonContent);
+      if (data is Map) {
+        if (data['firm'] is Map) firm = Firm.fromJson(Map<String, dynamic>.from(data['firm']));
+        if (data['items'] is List) {
+          items.clear();
+          for (final i in data['items']) {
+            if (i is Map) items.add(Item.fromJson(Map<String, dynamic>.from(i)));
+          }
+        }
+        if (data['customers'] is List) {
+          customers.clear();
+          for (final c in data['customers']) {
+            if (c is Map) customers.add(Customer.fromJson(Map<String, dynamic>.from(c)));
+          }
+        }
+        if (data['routes'] is List) {
+          routes.clear();
+          for (final r in data['routes']) {
+            if (r is Map) routes.add(DeliveryRoute.fromJson(Map<String, dynamic>.from(r)));
+          }
+        }
+        if (data['salesmen'] is List) {
+          salesmen.clear();
+          for (final s in data['salesmen']) {
+            if (s is Map) salesmen.add(Salesman.fromJson(Map<String, dynamic>.from(s)));
+          }
+        }
+        if (data['massIssues'] is List) {
+          massIssues.clear();
+          for (final m in data['massIssues']) {
+            if (m is Map) massIssues.add(MassIssue.fromJson(Map<String, dynamic>.from(m)));
+          }
+        }
+        if (data['vacations'] is List) {
+          vacations.clear();
+          for (final v in data['vacations']) {
+            if (v is Map) vacations.add(Vacation.fromJson(Map<String, dynamic>.from(v)));
+          }
+        }
+        if (data['bills'] is List) {
+          bills.clear();
+          for (final b in data['bills']) {
+            if (b is Map) bills.add(Bill.fromJson(Map<String, dynamic>.from(b)));
+          }
+        }
+        if (data['payments'] is List) {
+          payments.clear();
+          for (final p in data['payments']) {
+            if (p is Map) payments.add(Payment.fromJson(Map<String, dynamic>.from(p)));
+          }
+        }
+        if (data['expenses'] is List) {
+          expenses.clear();
+          for (final e in data['expenses']) {
+            if (e is Map) expenses.add(Expense.fromJson(Map<String, dynamic>.from(e)));
+          }
+        }
+      }
+    } catch (e) {
+      // Handle error gracefully
+    }
+  }
+
+  // 6. Export JSON Backup
+  String exportToJsonString() {
+    final data = {
+      'firm': firm.toJson(),
+      'items': items.map((i) => i.toJson()).toList(),
+      'customers': customers.map((c) => c.toJson()).toList(),
+      'routes': routes.map((r) => r.toJson()).toList(),
+      'salesmen': salesmen.map((s) => s.toJson()).toList(),
+      'massIssues': massIssues.map((m) => m.toJson()).toList(),
+      'vacations': vacations.map((v) => v.toJson()).toList(),
+      'bills': bills.map((b) => b.toJson()).toList(),
+      'payments': payments.map((p) => p.toJson()).toList(),
+      'expenses': expenses.map((e) => e.toJson()).toList(),
+    };
+    return const JsonEncoder.withIndent('  ').convert(data);
+  }
+}
