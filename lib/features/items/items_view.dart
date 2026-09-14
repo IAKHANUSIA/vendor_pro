@@ -303,7 +303,7 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.between,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       widget.item == null ? '➕ નવું પેપર ઉમેરો' : '✏️ પેપરમાં ફેરફાર',
@@ -343,7 +343,7 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
 
                 // Day-wise rates section
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.between,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       '📅 સોમ થી રવિ વેચાણ (MRP) અને ખરીદ ભાવ (PTR)',

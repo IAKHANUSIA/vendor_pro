@@ -385,7 +385,7 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.between,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       widget.customer == null ? '➕ નવો ગ્રાહક ઉમેરો' : '✏️ ગ્રાહકની વિગત બદલો',
