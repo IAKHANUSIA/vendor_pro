@@ -33,13 +33,16 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: 🛠️ Setup Flutter Android Scaffold
+        run: flutter create . --org com.vendorpro --project-name vendor_pro --platforms=android
+
       - name: 📦 Install Flutter Dependencies
         run: flutter pub get
 
       - name: 🏗️ Build Release APK
         run: flutter build apk --release
 
-      - name: 🏷️ Rename APK for easy download
+      - name: 🏷️ Prepare APK Artifact
         run: cp build/app/outputs/flutter-apk/app-release.apk VendorPro.apk
 
       - name: 📤 Upload Release APK as Artifact

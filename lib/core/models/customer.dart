@@ -16,7 +16,7 @@ class Customer {
   final String billingType; // 'daily' or 'fixed'
   final double fixedMonthlyAmount;
   final double openingBalance;
-  final double currentBalance;
+  double currentBalance;
   final String status; // 'active' or 'inactive'
   final String? inactiveDate;
   final bool delChargeEnabled;
@@ -33,9 +33,11 @@ class Customer {
     this.collectionManId,
     this.sequenceNo = '1',
     this.collectionSequence = '1',
-    this.mobile = '',
+    String mobile = '',
+    String? phone,
     this.whatsapp = '',
-    this.address = '',
+    String address = '',
+    String? buildingAddress,
     this.societyShort = '',
     this.subscriptions,
     this.billingType = 'daily',
@@ -45,9 +47,16 @@ class Customer {
     this.status = 'active',
     this.inactiveDate,
     this.delChargeEnabled = false,
-    this.delChargeAmt = 0.0,
+    double delChargeAmt = 0.0,
+    double? deliveryCharge,
     this.createdAt,
-  });
+  })  : mobile = mobile.isNotEmpty ? mobile : (phone ?? ''),
+        address = address.isNotEmpty ? address : (buildingAddress ?? ''),
+        delChargeAmt = delChargeAmt > 0 ? delChargeAmt : (deliveryCharge ?? 0.0);
+
+  String get phone => mobile.isNotEmpty ? mobile : whatsapp;
+  double get deliveryCharge => delChargeAmt;
+  String get buildingAddress => address.isNotEmpty ? address : societyShort;
 
   List<int> get subscriptionItemIds {
     if (subscriptions == null) return [];
@@ -120,9 +129,9 @@ class Customer {
       collectionManId: (json['collectionManId'] as num?)?.toInt(),
       sequenceNo: json['sequenceNo']?.toString() ?? '1',
       collectionSequence: json['collectionSequence']?.toString() ?? '1',
-      mobile: json['mobile']?.toString() ?? '',
+      mobile: json['mobile']?.toString() ?? json['phone']?.toString() ?? '',
       whatsapp: json['whatsapp']?.toString() ?? '',
-      address: json['address']?.toString() ?? '',
+      address: json['address']?.toString() ?? json['buildingAddress']?.toString() ?? '',
       societyShort: json['societyShort']?.toString() ?? '',
       subscriptions: json['subscriptions'],
       billingType: json['billingType']?.toString() ?? 'daily',
@@ -132,7 +141,7 @@ class Customer {
       status: json['status']?.toString() ?? 'active',
       inactiveDate: json['inactiveDate']?.toString(),
       delChargeEnabled: json['delChargeEnabled'] == true || json['delChargeEnabled'] == 'yes',
-      delChargeAmt: (json['delChargeAmt'] as num?)?.toDouble() ?? (json['deliveryCharge'] as num?)?.toDouble() ?? 0.0,
+      delChargeAmt: (json['delChargeAmt'] ?? json['deliveryCharge'] as num?)?.toDouble() ?? 0.0,
       createdAt: json['createdAt']?.toString(),
     );
   }
@@ -148,8 +157,10 @@ class Customer {
     'sequenceNo': sequenceNo,
     'collectionSequence': collectionSequence,
     'mobile': mobile,
+    'phone': phone,
     'whatsapp': whatsapp,
     'address': address,
+    'buildingAddress': buildingAddress,
     'societyShort': societyShort,
     'subscriptions': subscriptions,
     'billingType': billingType,
@@ -160,6 +171,7 @@ class Customer {
     'inactiveDate': inactiveDate,
     'delChargeEnabled': delChargeEnabled,
     'delChargeAmt': delChargeAmt,
+    'deliveryCharge': deliveryCharge,
     'createdAt': createdAt,
   };
 }
