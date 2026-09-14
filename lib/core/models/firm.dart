@@ -24,8 +24,13 @@ class Firm {
     this.billNoPrefix = 'VP',
     this.billNoStartNum = 1001,
     this.billNoPadding = 4,
-    this.termsAndConditions = 'દરેક મહિનાની ૧૦ તારીખ પહેલા બિલની રકમ જમા કરાવી આપવા વિનંતી.',
-  });
+    String? termsAndConditions,
+    String? billNotes,
+  }) : termsAndConditions = billNotes ??
+            termsAndConditions ??
+            'દરેક મહિનાની ૧૦ તારીખ પહેલા બિલની રકમ જમા કરાવી આપવા વિનંતી.';
+
+  String get billNotes => termsAndConditions;
 
   factory Firm.fromJson(Map<String, dynamic> json) {
     return Firm(
@@ -40,7 +45,9 @@ class Firm {
       billNoPrefix: json['billNoPrefix']?.toString() ?? 'VP',
       billNoStartNum: (json['billNoStartNum'] as num?)?.toInt() ?? 1001,
       billNoPadding: (json['billNoPadding'] as num?)?.toInt() ?? 4,
-      termsAndConditions: json['termsAndConditions']?.toString() ?? 'દરેક મહિનાની ૧૦ તારીખ પહેલા બિલની રકમ જમા કરાવી આપવા વિનંતી.',
+      termsAndConditions: json['billNotes']?.toString() ??
+          json['termsAndConditions']?.toString() ??
+          'દરેક મહિનાની ૧૦ તારીખ પહેલા બિલની રકમ જમા કરાવી આપવા વિનંતી.',
     );
   }
 
@@ -57,5 +64,6 @@ class Firm {
     'billNoStartNum': billNoStartNum,
     'billNoPadding': billNoPadding,
     'termsAndConditions': termsAndConditions,
+    'billNotes': billNotes,
   };
 }

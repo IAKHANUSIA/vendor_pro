@@ -73,16 +73,23 @@ class Item {
     this.type = 'daily',
     this.defaultRate = 5.0,
     this.sundayRate = 6.0,
+    double? defaultPurchaseRate,
+    double? sundayPurchaseRate,
     this.monthlyRate = 0.0,
     this.status = 'active',
     Map<String, DayRate>? dayRates,
     List<RateRevision>? rateHistory,
-  })  : dayRates = dayRates ?? _defaultDayRates(defaultRate, sundayRate),
+  })  : dayRates = dayRates ?? _defaultDayRates(defaultRate, sundayRate, defaultPurchaseRate, sundayPurchaseRate),
         rateHistory = rateHistory ?? [];
 
-  static Map<String, DayRate> _defaultDayRates(double defSale, double sunSale) {
-    final defPur = double.parse((defSale * 0.7).toStringAsFixed(2));
-    final sunPur = double.parse((sunSale * 0.7).toStringAsFixed(2));
+  static Map<String, DayRate> _defaultDayRates(
+    double defSale,
+    double sunSale, [
+    double? defPurRate,
+    double? sunPurRate,
+  ]) {
+    final defPur = defPurRate ?? double.parse((defSale * 0.7).toStringAsFixed(2));
+    final sunPur = sunPurRate ?? double.parse((sunSale * 0.7).toStringAsFixed(2));
     return {
       'mon': DayRate(sale: defSale, purchase: defPur),
       'tue': DayRate(sale: defSale, purchase: defPur),

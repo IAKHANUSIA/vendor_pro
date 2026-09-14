@@ -317,9 +317,9 @@ class _LedgersViewState extends ConsumerState<LedgersView> {
     }
 
     final buffer = StringBuffer();
-    buffer.writeln('📰 *$firm.name*');
+    buffer.writeln('📰 *${firm.name}*');
     buffer.writeln('━━━━━━━━━━━━━━━━━━━━');
-    buffer.writeln('નમસ્તે *$cust.name*,');
+    buffer.writeln('નમસ્તે *${cust.name}*,');
     buffer.writeln('તમારા ન્યૂઝપેપર ખાતાનો હિસાબ નીચે મુજબ છે:');
     buffer.writeln('━━━━━━━━━━━━━━━━━━━━');
     for (final e in entries.reversed.take(5)) {
@@ -336,7 +336,7 @@ class _LedgersViewState extends ConsumerState<LedgersView> {
     }
     buffer.writeln('━━━━━━━━━━━━━━━━━━━━');
     buffer.writeln('આભાર સહ,');
-    buffer.writeln('*$firm.name*');
+    buffer.writeln('*${firm.name}*');
 
     final phoneClean = cust.phone.replaceAll(RegExp(r'[^0-9]'), '');
     final fullPhone = phoneClean.length == 10 ? '91$phoneClean' : phoneClean;

@@ -89,6 +89,7 @@ class Bill {
         generatedAt = generatedAt ?? DateTime.now().toIso8601String();
 
   double get balanceDue => (finalPayable - paymentReceived).clamp(0.0, double.infinity);
+  double get billTotal => finalPayable;
 
   factory Bill.fromJson(Map<String, dynamic> json) {
     final pb = <String, PaperBreakdownItem>{};
