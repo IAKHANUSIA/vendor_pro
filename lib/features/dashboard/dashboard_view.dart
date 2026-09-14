@@ -5,9 +5,9 @@ import '../../core/database/database_service.dart';
 import '../../core/localization/app_localizations.dart';
 
 class DashboardView extends StatefulWidget {
-  final Function(int) onNavigate;
+  final Function(int)? onNavigate;
 
-  const DashboardView({super.key, required this.onNavigate});
+  const DashboardView({super.key, this.onNavigate});
 
   @override
   State<DashboardView> createState() => _DashboardViewState();
@@ -40,12 +40,12 @@ class _DashboardViewState extends State<DashboardView> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildQuickAction('🛵 સવારનું સેલ', () => widget.onNavigate(1), AppColors.primary),
-                _buildQuickAction('🏬 આવતીકાલની ખરીદી', () => widget.onNavigate(2), AppColors.warning),
-                _buildQuickAction('👥 ગ્રાહક માસ્ટર', () => widget.onNavigate(3), AppColors.success),
-                _buildQuickAction('🌴 રજા કેલેન્ડર', () => widget.onNavigate(4), AppColors.danger),
-                _buildQuickAction('🧾 મહિનાનું બિલિંગ', () => widget.onNavigate(5), AppColors.purple),
-                _buildQuickAction('💰 ઉઘરાણી / UPI', () => widget.onNavigate(6), AppColors.indigo),
+                _buildQuickAction('🛵 સવારનું સેલ', () => widget.onNavigate?.call(1), AppColors.primary),
+                _buildQuickAction('🏬 આવતીકાલની ખરીદી', () => widget.onNavigate?.call(2), AppColors.warning),
+                _buildQuickAction('👥 ગ્રાહક માસ્ટર', () => widget.onNavigate?.call(3), AppColors.success),
+                _buildQuickAction('🌴 રજા કેલેન્ડર', () => widget.onNavigate?.call(4), AppColors.danger),
+                _buildQuickAction('🧾 મહિનાનું બિલિંગ', () => widget.onNavigate?.call(5), AppColors.purple),
+                _buildQuickAction('💰 ઉઘરાણી / UPI', () => widget.onNavigate?.call(6), AppColors.indigo),
               ],
             ),
             const SizedBox(height: 18),

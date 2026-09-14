@@ -40,7 +40,7 @@ jobs:
         run: flutter pub get
 
       - name: 🏗️ Build Release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: 🏷️ Prepare APK Artifact
         run: cp build/app/outputs/flutter-apk/app-release.apk VendorPro.apk
