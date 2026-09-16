@@ -19,9 +19,12 @@ class AppColors {
 
   // Accent & Brand Colors
   static const Color primary = Color(0xFF0EA5E9); // Cyan / Sky Blue
+  static const Color primaryBlue = Color(0xFF0284C7);
   static const Color primaryTeal = Color(0xFF0EA5E9);
   static const Color primaryLight = Color(0xFF38BDF8);
   static const Color primaryDark = Color(0xFF0284C7);
+  static const Color accentCyan = Color(0xFF38BDF8);
+  static const Color accentOrange = Color(0xFFF97316);
 
   static const Color success = Color(0xFF10B981); // Emerald
   static const Color successGreen = Color(0xFF10B981);
@@ -45,6 +48,7 @@ class AppColors {
   static const Color cardBorderLight = Color(0xFFCBD5E1);
 
   // Text Colors
+  static const Color textLight = Color(0xFFF8FAFC);
   static const Color textPrimaryDark = Color(0xFFF8FAFC);
   static const Color textSecondaryDark = Color(0xFF94A3B8);
   static const Color textMutedDark = Color(0xFF64748B);

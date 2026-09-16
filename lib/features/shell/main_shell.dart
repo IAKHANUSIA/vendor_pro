@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/localization/app_localizations.dart';
+import '../../core/database/database_service.dart';
+import '../../core/providers/app_providers.dart';
 import '../dashboard/dashboard_view.dart';
 import '../daily_delivery/daily_delivery_view.dart';
 import '../depot_purchase/depot_purchase_view.dart';
@@ -14,7 +16,7 @@ import '../items/items_view.dart';
 import '../routes/routes_view.dart';
 import '../settings/settings_view.dart';
 
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerStatefulWidget {
   final Locale currentLocale;
   final VoidCallback onToggleLocale;
 
@@ -25,10 +27,10 @@ class MainShell extends StatefulWidget {
   });
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends ConsumerState<MainShell> {
   int _selectedIndex = 0;
 
   final List<NavModule> _modules = const [
@@ -40,7 +42,7 @@ class _MainShellState extends State<MainShell> {
     NavModule(icon: Icons.receipt_long_rounded, label: 'માસિક બિલિંગ (Billing)', emoji: '🧾'),
     NavModule(icon: Icons.payments_rounded, label: 'વસૂલાત (Payments)', emoji: '💰'),
     NavModule(icon: Icons.menu_book_rounded, label: 'ખાતાવહી (Ledgers)', emoji: '📚'),
-    NavModule(icon: Icons.account_balance_wallet_rounded, label: 'ખર્ચાઓ (Expenses)', emoji: '💸'),
+    NavModule(icon: Icons.account_balance_wallet_rounded, label: 'ખર્ચાઓ અને બેંક (Expenses)', emoji: '💸'),
     NavModule(icon: Icons.newspaper_rounded, label: 'ન્યૂઝપેપર (Items)', emoji: '📰'),
     NavModule(icon: Icons.map_rounded, label: 'લાઇનો / હોકર્સ (Routes)', emoji: '🗺️'),
     NavModule(icon: Icons.settings_rounded, label: 'સેટિંગ્સ (Settings)', emoji: '⚙️'),
@@ -48,7 +50,10 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(dbChangeNotifierProvider);
+    final db = DatabaseService.instance;
     final isWide = MediaQuery.of(context).size.width >= 900;
+    final isCloud = db.storageMode == 'cloud';
 
     return Scaffold(
       appBar: AppBar(
@@ -65,14 +70,30 @@ class _MainShellState extends State<MainShell> {
               child: const Text('📰', style: TextStyle(fontSize: 20)),
             ),
             const SizedBox(width: 10),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Vendor Pro',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                Row(
+                  children: [
+                    Text(
+                      db.firm.name.isNotEmpty ? db.firm.name : 'Vendor Pro',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryBlue.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        db.agencyId,
+                        style: const TextStyle(fontSize: 10, color: AppColors.accentCyan, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
+                const Text(
                   'ન્યૂઝપેપર વિતરણ અને બિલિંગ મેનેજમેન્ટ સિસ્ટમ',
                   style: TextStyle(fontSize: 11, color: AppColors.textMutedDark),
                 ),
@@ -85,9 +106,9 @@ class _MainShellState extends State<MainShell> {
             margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.successGreen.withOpacity(0.15),
+              color: (isCloud ? AppColors.accentCyan : AppColors.successGreen).withOpacity(0.15),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
+              border: Border.all(color: (isCloud ? AppColors.accentCyan : AppColors.successGreen).withOpacity(0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -95,12 +116,19 @@ class _MainShellState extends State<MainShell> {
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(color: AppColors.successGreen, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: isCloud ? AppColors.accentCyan : AppColors.successGreen,
+                    shape: BoxShape.circle,
+                  ),
                 ),
                 const SizedBox(width: 6),
-                const Text(
-                  '૧૦૦% ઓફલાઇન (Offline Active)',
-                  style: TextStyle(color: AppColors.successGreen, fontSize: 12, fontWeight: FontWeight.w600),
+                Text(
+                  isCloud ? '☁️ Cloud Sync (Live)' : '💾 ૧૦૦% ઓફલાઇન',
+                  style: TextStyle(
+                    color: isCloud ? AppColors.accentCyan : AppColors.successGreen,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/database/database_service.dart';
 import '../../core/models/expense.dart';
+import '../../core/models/bank_account.dart';
 import '../../core/providers/app_providers.dart';
 
 class ExpensesView extends ConsumerStatefulWidget {
@@ -12,30 +13,37 @@ class ExpensesView extends ConsumerStatefulWidget {
   ConsumerState<ExpensesView> createState() => _ExpensesViewState();
 }
 
-class _ExpensesViewState extends ConsumerState<ExpensesView> {
+class _ExpensesViewState extends ConsumerState<ExpensesView> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   String _selectedCategory = 'all';
 
   final Map<String, String> _categoryLabels = {
     'all': 'બધા ખર્ચા',
-    'hawker_salary': 'સેલ્સમેન / હોકર પગાર',
-    'depot_tea_snack': 'ડેપો ચા-નાસ્તો',
-    'fuel_transport': 'પેટ્રોલ / વાહન ખર્ચ',
-    'stationary': 'સ્ટેશનરી / પ્રિન્ટિંગ',
+    'petrol': 'પેટ્રોલ / વાહન ખર્ચ',
+    'tea_snacks': 'ડેપો / સ્ટાફ ચા-નાસ્તો',
+    'salary': 'હોકર / સેલ્સમેન પગાર',
+    'maintenance': 'રિપેરિંગ / મેઈન્ટેનન્સ',
+    'rent': 'ઓફિસ ભાડું / લાઈટ બિલ',
     'misc': 'પરચુરણ ખર્ચ (Misc)',
   };
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final expenses = ref.watch(expensesProvider);
-
-    final filteredExpenses = expenses.where((e) {
-      if (_selectedCategory != 'all' && e.category != _selectedCategory) return false;
-      return true;
-    }).toList();
-
-    final totalExpense = expenses.fold(0.0, (sum, e) => sum + e.amount);
-    final salaryExpense = expenses.where((e) => e.category == 'hawker_salary').fold(0.0, (sum, e) => sum + e.amount);
-    final depotExpense = expenses.where((e) => e.category == 'depot_tea_snack').fold(0.0, (sum, e) => sum + e.amount);
+    final bankAccounts = ref.watch(bankAccountsProvider);
+    final bankTransactions = ref.watch(bankTransactionsProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -44,303 +52,544 @@ class _ExpensesViewState extends ConsumerState<ExpensesView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header & Action
+            // Top Navigation & Action Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: AppColors.errorRed.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.receipt, color: AppColors.errorRed, size: 24),
+                      child: const Icon(Icons.account_balance_wallet, color: AppColors.errorRed, size: 26),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 14),
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'રોજિંદા ખર્ચાઓ (Expenses Tracker)',
+                          'ખર્ચા અને બેંકિંગ વ્યવસ્થાપન',
                           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5),
                         ),
                         Text(
-                          'હોકર પગાર, ડેપો ચા-નાસ્તો, પેટ્રોલ અને અન્ય એજન્સી ખર્ચ',
+                          'રોજિંદા ખર્ચાઓ, હોકર પગાર, બેંક એકાઉન્ટ્સ અને પાસબુક લેજર',
                           style: TextStyle(fontSize: 13, color: AppColors.textMutedDark),
                         ),
                       ],
                     ),
                   ],
                 ),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddExpenseModal(context),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('નવો ખર્ચ ઉમેરો'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.errorRed,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () => _showAddExpenseModal(context),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('નવો ખર્ચ ઉમેરો'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.errorRed,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: () => _showAddBankModal(context),
+                      icon: const Icon(Icons.account_balance, size: 18),
+                      label: const Text('બેંક એકાઉન્ટ ઉમેરો'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // KPI Cards
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isNarrow = constraints.maxWidth < 800;
-                return GridView.count(
-                  crossAxisCount: isNarrow ? 2 : 3,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: isNarrow ? 1.8 : 2.6,
-                  children: [
-                    _buildKpiCard('કુલ માસિક ખર્ચ', '₹${totalExpense.toStringAsFixed(0)}', Icons.account_balance_wallet, AppColors.errorRed, '${expenses.length} એન્ટ્રીઓ'),
-                    _buildKpiCard('હોકર / સેલ્સમેન પગાર', '₹${salaryExpense.toStringAsFixed(0)}', Icons.people, AppColors.accentGold, 'વિતરણ મહેનતાણું'),
-                    _buildKpiCard('ડેપો / ચા-નાસ્તો', '₹${depotExpense.toStringAsFixed(0)}', Icons.coffee, AppColors.primaryTeal, 'રોજિંદો ખર્ચ'),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Category Filter Pills
+            // Tab Bar
             Container(
-              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.cardDark,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.cardBorderDark),
+                color: AppColors.surfaceDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.borderDark),
               ),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _categoryLabels.entries.map((entry) {
-                  final isSelected = _selectedCategory == entry.key;
-                  return ChoiceChip(
-                    label: Text(entry.value, style: TextStyle(fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                    selected: isSelected,
-                    selectedColor: AppColors.errorRed.withOpacity(0.25),
-                    backgroundColor: AppColors.surfaceDark,
-                    onSelected: (_) => setState(() => _selectedCategory = entry.key),
-                    side: BorderSide(color: isSelected ? AppColors.errorRed : Colors.transparent),
-                  );
-                }).toList(),
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: AppColors.primaryBlue,
+                indicatorWeight: 3,
+                labelColor: AppColors.primaryBlue,
+                unselectedLabelColor: AppColors.textMutedDark,
+                tabs: const [
+                  Tab(icon: Icon(Icons.receipt_long), text: '૧. રોજિંદા ખર્ચાઓ (Expenses Tracker)'),
+                  Tab(icon: Icon(Icons.account_balance), text: '૨. બેંક એકાઉન્ટ્સ અને પાસબુક (Banking & Ledger)'),
+                ],
               ),
             ),
             const SizedBox(height: 20),
 
-            // Expense Records List
-            if (filteredExpenses.isEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(48),
-                decoration: BoxDecoration(
-                  color: AppColors.cardDark,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.cardBorderDark),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.money_off, size: 64, color: AppColors.textMutedDark.withOpacity(0.5)),
-                    const SizedBox(height: 16),
-                    const Text('કોઈ ખર્ચ નોંધાયેલ નથી.', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    const Text('નવો ખર્ચ ઉમેરવા માટે ઉપર આપેલ બટન દબાવો.', style: TextStyle(color: AppColors.textMutedDark)),
-                  ],
-                ),
-              )
-            else
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.cardDark,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.cardBorderDark),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filteredExpenses.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.cardBorderDark),
-                  itemBuilder: (context, index) {
-                    final exp = filteredExpenses[index];
-                    return Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.errorRed.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.arrow_downward, color: AppColors.errorRed, size: 20),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(exp.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'કેટેગરી: ${_categoryLabels[exp.category] ?? exp.category}  |  તારીખ: ${exp.date}  |  પદ્ધતિ: ${exp.paymentMode.toUpperCase()}',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textMutedDark),
-                                ),
-                                if (exp.notes.isNotEmpty)
-                                  Text('નોંધ: ${exp.notes}', style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.textMutedDark)),
-                              ],
-                            ),
-                          ),
-                          Text('₹${exp.amount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.errorRed)),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+            // Tab Content
+            SizedBox(
+              height: 700,
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildExpensesTab(expenses),
+                  _buildBankingTab(bankAccounts, bankTransactions),
+                ],
               ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildKpiCard(String title, String value, IconData icon, Color color, String subtext) {
+  // --- TAB 1: EXPENSES ---
+  Widget _buildExpensesTab(List<Expense> expenses) {
+    final filteredExpenses = expenses.where((e) {
+      if (_selectedCategory != 'all' && e.category != _selectedCategory) return false;
+      return true;
+    }).toList();
+
+    final totalExpense = expenses.fold<double>(0.0, (sum, e) => sum + e.amount);
+    final salaryExpense = expenses.where((e) => e.category == 'salary').fold<double>(0.0, (sum, e) => sum + e.amount);
+    final fuelExpense = expenses.where((e) => e.category == 'petrol').fold<double>(0.0, (sum, e) => sum + e.amount);
+
+    return Column(
+      children: [
+        // KPI Summary Cards
+        Row(
+          children: [
+            Expanded(child: _buildKpiCard('કુલ ખર્ચ', '₹${totalExpense.toStringAsFixed(0)}', AppColors.errorRed, Icons.money_off)),
+            const SizedBox(width: 14),
+            Expanded(child: _buildKpiCard('સેલ્સમેન / હોકર પગાર', '₹${salaryExpense.toStringAsFixed(0)}', AppColors.accentOrange, Icons.people)),
+            const SizedBox(width: 14),
+            Expanded(child: _buildKpiCard('પેટ્રોલ / વાહન ખર્ચ', '₹${fuelExpense.toStringAsFixed(0)}', AppColors.accentCyan, Icons.local_gas_station)),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Category Filter
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _categoryLabels.entries.map((entry) {
+              final isSelected = _selectedCategory == entry.key;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: ChoiceChip(
+                  label: Text(entry.value),
+                  selected: isSelected,
+                  onSelected: (val) {
+                    if (val) setState(() => _selectedCategory = entry.key);
+                  },
+                  selectedColor: AppColors.primaryBlue.withOpacity(0.25),
+                  backgroundColor: AppColors.surfaceDark,
+                  labelStyle: TextStyle(
+                    color: isSelected ? AppColors.primaryBlue : AppColors.textLight,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Expenses Table
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.borderDark),
+            ),
+            child: filteredExpenses.isEmpty
+                ? const Center(child: Text('કોઈ ખર્ચ મળ્યો નથી.', style: TextStyle(color: AppColors.textMutedDark)))
+                : ListView.separated(
+                    itemCount: filteredExpenses.length,
+                    separatorBuilder: (_, __) => const Divider(color: AppColors.borderDark, height: 1),
+                    itemBuilder: (context, idx) {
+                      final exp = filteredExpenses[idx];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.errorRed.withOpacity(0.15),
+                          child: const Icon(Icons.receipt, color: AppColors.errorRed, size: 20),
+                        ),
+                        title: Text(exp.paidTo.isNotEmpty ? exp.paidTo : _categoryLabels[exp.category] ?? exp.category,
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textLight)),
+                        subtitle: Text('${exp.date} • ${_categoryLabels[exp.category] ?? exp.category} • ${exp.remarks}',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMutedDark)),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '₹${exp.amount.toStringAsFixed(0)}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.errorRed),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.textMutedDark),
+                              onPressed: () {
+                                DatabaseService.instance.expenses.removeWhere((e) => e.id == exp.id);
+                                notifyDbChanged(ref);
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- TAB 2: BANKING & PASSBOOK ---
+  Widget _buildBankingTab(List<BankAccount> bankAccounts, List<BankTransaction> bankTransactions) {
+    final totalBalance = bankAccounts.fold<double>(0.0, (sum, a) => sum + a.currentBalance);
+
+    return Column(
+      children: [
+        // Bank KPI
+        Row(
+          children: [
+            Expanded(
+              child: _buildKpiCard('તમામ બેંક કુલ સિલક (Total Balance)', '₹${totalBalance.toStringAsFixed(0)}', AppColors.successGreen, Icons.account_balance),
+            ),
+            const SizedBox(width: 14),
+            ElevatedButton.icon(
+              onPressed: () => _showAddTransactionModal(context),
+              icon: const Icon(Icons.swap_horiz),
+              label: const Text('ડિપોઝિટ / ઉપાડ એન્ટ્રી'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.successGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Bank Account Cards
+        SizedBox(
+          height: 110,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: bankAccounts.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, idx) {
+              final acc = bankAccounts[idx];
+              return Container(
+                width: 240,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDark,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.borderDark),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(acc.bankName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textLight)),
+                        const Icon(Icons.account_balance, size: 16, color: AppColors.primaryBlue),
+                      ],
+                    ),
+                    Text(acc.accountNumber, style: const TextStyle(fontSize: 11, color: AppColors.textMutedDark, fontFamily: 'monospace')),
+                    Text('₹${acc.currentBalance.toStringAsFixed(0)}',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.successGreen)),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Passbook Ledger History
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.borderDark),
+            ),
+            child: bankTransactions.isEmpty
+                ? const Center(child: Text('હજુ સુધી કોઈ બેંક ટ્રાન્ઝેક્શન નથી.', style: TextStyle(color: AppColors.textMutedDark)))
+                : ListView.separated(
+                    itemCount: bankTransactions.length,
+                    separatorBuilder: (_, __) => const Divider(color: AppColors.borderDark, height: 1),
+                    itemBuilder: (context, idx) {
+                      final tx = bankTransactions[idx];
+                      final isDeposit = tx.type == 'deposit';
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: isDeposit ? AppColors.successGreen.withOpacity(0.15) : AppColors.errorRed.withOpacity(0.15),
+                          child: Icon(isDeposit ? Icons.arrow_downward : Icons.arrow_upward,
+                              color: isDeposit ? AppColors.successGreen : AppColors.errorRed, size: 18),
+                        ),
+                        title: Text(tx.partyName.isNotEmpty ? tx.partyName : (isDeposit ? 'જમા (Deposit)' : 'ઉપાડ (Withdrawal)'),
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textLight)),
+                        subtitle: Text('${tx.date} • ${tx.note} • Ref: ${tx.refNo}',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMutedDark)),
+                        trailing: Text(
+                          '${isDeposit ? '+' : '-'}₹${tx.amount.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: isDeposit ? AppColors.successGreen : AppColors.errorRed,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildKpiCard(String title, String value, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorderDark),
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderDark),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 12, color: AppColors.textMutedDark)),
-                const SizedBox(height: 4),
-                Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-                const SizedBox(height: 2),
-                Text(subtext, style: const TextStyle(fontSize: 10, color: AppColors.textMutedDark)),
-              ],
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 12, color: AppColors.textMutedDark)),
+              const SizedBox(height: 4),
+              Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+            ],
           ),
         ],
       ),
     );
   }
 
+  // --- MODALS ---
   void _showAddExpenseModal(BuildContext context) {
-    String title = '';
-    double amount = 0.0;
-    String category = 'depot_tea_snack';
-    String mode = 'cash';
-    String notes = '';
+    final amountCtrl = TextEditingController();
+    final paidToCtrl = TextEditingController();
+    final remarksCtrl = TextEditingController();
+    String category = 'petrol';
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => AlertDialog(
-          backgroundColor: AppColors.cardDark,
-          title: const Row(
-            children: [
-              Icon(Icons.add_shopping_cart, color: AppColors.errorRed),
-              SizedBox(width: 10),
-              Text('નવો ખર્ચ નોંધો'),
-            ],
-          ),
-          content: SizedBox(
-            width: 440,
+        builder: (ctx, setSt) => AlertDialog(
+          backgroundColor: AppColors.surfaceDark,
+          title: const Text('💸 નવો ખર્ચ ઉમેરો', style: TextStyle(color: AppColors.textLight)),
+          content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'ખર્ચનું નામ / વિગત *', hintText: 'દા.ત. ડેપો સવારનો ચા-નાસ્તો'),
-                  onChanged: (v) => title = v,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'ખર્ચ રકમ (₹) *'),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => amount = double.tryParse(v) ?? 0.0,
-                ),
-                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: category,
-                  decoration: const InputDecoration(labelText: 'કેટેગરી પસંદ કરો', isDense: true),
-                  dropdownColor: AppColors.cardDark,
-                  items: const [
-                    DropdownMenuItem(value: 'depot_tea_snack', child: Text('ડેપો ચા-નાસ્તો')),
-                    DropdownMenuItem(value: 'hawker_salary', child: Text('સેલ્સમેન / હોકર પગાર')),
-                    DropdownMenuItem(value: 'fuel_transport', child: Text('પેટ્રોલ / વાહન ખર્ચ')),
-                    DropdownMenuItem(value: 'stationary', child: Text('સ્ટેશનરી / પ્રિન્ટિંગ')),
-                    DropdownMenuItem(value: 'misc', child: Text('પરચુરણ ખર્ચ (Misc)')),
-                  ],
-                  onChanged: (v) => setModalState(() => category = v ?? 'misc'),
+                  dropdownColor: AppColors.surfaceDark,
+                  decoration: const InputDecoration(labelText: 'ખર્ચ કેટેગરી'),
+                  items: _categoryLabels.entries
+                      .where((e) => e.key != 'all')
+                      .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                      .toList(),
+                  onChanged: (val) => setSt(() => category = val ?? 'petrol'),
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: mode,
-                  decoration: const InputDecoration(labelText: 'ચૂકવણી પદ્ધતિ (Mode)', isDense: true),
-                  dropdownColor: AppColors.cardDark,
-                  items: const [
-                    DropdownMenuItem(value: 'cash', child: Text('રોકડ (Cash)')),
-                    DropdownMenuItem(value: 'upi', child: Text('UPI (GPay / PhonePe)')),
-                    DropdownMenuItem(value: 'bank', child: Text('બેંક ટ્રાન્સફર / ચેક')),
-                  ],
-                  onChanged: (v) => setModalState(() => mode = v ?? 'cash'),
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'રકમ (₹)'),
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'વધારાની નોંધ (Notes)'),
-                  onChanged: (v) => notes = v,
+                TextField(
+                  controller: paidToCtrl,
+                  decoration: const InputDecoration(labelText: 'કોને ચૂકવ્યા (Paid To)'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: remarksCtrl,
+                  decoration: const InputDecoration(labelText: 'નોંધ / વિગત (Remarks)'),
                 ),
               ],
             ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('રદ કરો')),
-            ElevatedButton.icon(
+            ElevatedButton(
               onPressed: () {
-                if (title.isEmpty || amount <= 0) return;
-                Navigator.pop(ctx);
-                final db = ref.read(databaseProvider);
-                db.expenses.add(Expense(
-                  id: DateTime.now().millisecondsSinceEpoch,
-                  date: DateTime.now().toIso8601String().split('T')[0],
-                  category: category,
-                  title: title,
-                  amount: amount,
-                  paymentMode: mode,
-                  notes: notes,
+                final amt = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
+                if (amt > 0) {
+                  DatabaseService.instance.expenses.add(Expense(
+                    id: DateTime.now().millisecondsSinceEpoch,
+                    date: DateTime.now().toIso8601String().split('T')[0],
+                    category: category,
+                    amount: amt,
+                    paidTo: paidToCtrl.text.trim(),
+                    paymentMode: 'cash',
+                    remarks: remarksCtrl.text.trim(),
+                  ));
+                  notifyDbChanged(ref);
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text('સેવ કરો'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddBankModal(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final accNoCtrl = TextEditingController();
+    final ifscCtrl = TextEditingController();
+    final balCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        title: const Text('🏦 નવું બેંક એકાઉન્ટ ઉમેરો', style: TextStyle(color: AppColors.textLight)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'બેંકનું નામ (દા.ત. SBI)')),
+              const SizedBox(height: 12),
+              TextField(controller: accNoCtrl, decoration: const InputDecoration(labelText: 'એકાઉન્ટ નંબર')),
+              const SizedBox(height: 12),
+              TextField(controller: ifscCtrl, decoration: const InputDecoration(labelText: 'IFSC કોડ')),
+              const SizedBox(height: 12),
+              TextField(controller: balCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'શરૂઆતની સિલક (₹)')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('રદ કરો')),
+          ElevatedButton(
+            onPressed: () {
+              final bal = double.tryParse(balCtrl.text.trim()) ?? 0.0;
+              if (nameCtrl.text.trim().isNotEmpty) {
+                DatabaseService.instance.addBankAccount(BankAccount(
+                  id: 'acc_${DateTime.now().millisecondsSinceEpoch}',
+                  bankName: nameCtrl.text.trim(),
+                  accountNumber: accNoCtrl.text.trim(),
+                  ifsc: ifscCtrl.text.trim(),
+                  initialBalance: bal,
+                  currentBalance: bal,
                 ));
                 notifyDbChanged(ref);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('₹${amount.toStringAsFixed(0)} નો ખર્ચ સફળતાપૂર્વક નોંધાઈ ગયો!'),
-                    backgroundColor: AppColors.successGreen,
-                  ),
-                );
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text('ઉમેરો'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddTransactionModal(BuildContext context) {
+    final amountCtrl = TextEditingController();
+    final partyCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    String type = 'deposit';
+    String selectedAccId = DatabaseService.instance.bankAccounts.isNotEmpty ? DatabaseService.instance.bankAccounts.first.id : '';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => AlertDialog(
+          backgroundColor: AppColors.surfaceDark,
+          title: const Text('🔄 બેંક ડિપોઝિટ / ઉપાડ એન્ટ્રી', style: TextStyle(color: AppColors.textLight)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: type,
+                  dropdownColor: AppColors.surfaceDark,
+                  decoration: const InputDecoration(labelText: 'પ્રકાર (Type)'),
+                  items: const [
+                    DropdownMenuItem(value: 'deposit', child: Text('➕ જમા (Deposit)')),
+                    DropdownMenuItem(value: 'withdrawal', child: Text('➖ ઉપાડ (Withdrawal)')),
+                  ],
+                  onChanged: (val) => setSt(() => type = val ?? 'deposit'),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: selectedAccId,
+                  dropdownColor: AppColors.surfaceDark,
+                  decoration: const InputDecoration(labelText: 'બેંક એકાઉન્ટ'),
+                  items: DatabaseService.instance.bankAccounts
+                      .map((a) => DropdownMenuItem(value: a.id, child: Text('${a.bankName} (${a.accountNumber})')))
+                      .toList(),
+                  onChanged: (val) => setSt(() => selectedAccId = val ?? ''),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'રકમ (₹)'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: partyCtrl,
+                  decoration: const InputDecoration(labelText: 'પાર્ટીનું નામ / વિગત'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteCtrl,
+                  decoration: const InputDecoration(labelText: 'નોંધ (Note)'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('રદ કરો')),
+            ElevatedButton(
+              onPressed: () {
+                final amt = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
+                if (amt > 0 && selectedAccId.isNotEmpty) {
+                  DatabaseService.instance.addBankTransaction(BankTransaction(
+                    id: 'tx_${DateTime.now().millisecondsSinceEpoch}',
+                    bankAccountId: selectedAccId,
+                    date: DateTime.now().toIso8601String().split('T')[0],
+                    type: type,
+                    amount: amt,
+                    partyName: partyCtrl.text.trim(),
+                    note: noteCtrl.text.trim(),
+                  ));
+                  notifyDbChanged(ref);
+                  Navigator.pop(ctx);
+                }
               },
-              icon: const Icon(Icons.check),
-              label: const Text('નોંધ કરો'),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.errorRed),
+              child: const Text('સબમિટ કરો'),
             ),
           ],
         ),

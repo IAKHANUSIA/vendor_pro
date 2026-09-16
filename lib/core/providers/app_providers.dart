@@ -10,6 +10,7 @@ import '../models/vacation.dart';
 import '../models/mass_issue.dart';
 import '../models/bill.dart';
 import '../models/expense.dart';
+import '../models/bank_account.dart';
 
 // Database Instance Provider
 final databaseProvider = Provider<DatabaseService>((ref) => DatabaseService.instance);
@@ -75,6 +76,16 @@ final paymentsProvider = Provider<List<Payment>>((ref) {
 final expensesProvider = Provider<List<Expense>>((ref) {
   ref.watch(dbChangeNotifierProvider);
   return List.unmodifiable(DatabaseService.instance.expenses);
+});
+
+final bankAccountsProvider = Provider<List<BankAccount>>((ref) {
+  ref.watch(dbChangeNotifierProvider);
+  return List.unmodifiable(DatabaseService.instance.bankAccounts);
+});
+
+final bankTransactionsProvider = Provider<List<BankTransaction>>((ref) {
+  ref.watch(dbChangeNotifierProvider);
+  return List.unmodifiable(DatabaseService.instance.bankTransactions);
 });
 
 void notifyDbChanged(WidgetRef ref) {

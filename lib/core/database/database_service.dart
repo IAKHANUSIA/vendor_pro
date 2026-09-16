@@ -8,6 +8,7 @@ import '../models/vacation.dart';
 import '../models/mass_issue.dart';
 import '../models/bill.dart';
 import '../models/expense.dart';
+import '../models/bank_account.dart';
 
 class DepotItemDemand {
   final int id;
@@ -100,6 +101,20 @@ class DatabaseService {
   final List<Bill> bills = [];
   final List<Payment> payments = [];
   final List<Expense> expenses = [];
+  final List<BankAccount> bankAccounts = [];
+  final List<BankTransaction> bankTransactions = [];
+  final Map<String, String> deliveryLogs = {}; // date_customerId -> 'delivered' | 'undelivered' | 'hold'
+
+  // SaaS Multi-Tenant & Licensing Properties
+  String agencyId = 'VS-AGY-BEBF';
+  String storageMode = 'offline'; // 'offline' | 'cloud'
+  String cloudUrl = '';
+  String cloudKey = '';
+  String licenseKey = 'VS-261031-BEBF-1A2B';
+  String licensePlan = '1 Year SaaS (₹4,999)';
+  String licenseValidUntil = '2026-10-31';
+  String licenseStatus = 'active';
+  String? lastCloudSync;
 
   bool isInitialized = false;
 
@@ -213,6 +228,129 @@ class DatabaseService {
         currentBalance: 320.0,
       ),
     ]);
+
+    bankAccounts.addAll([
+      BankAccount(
+        id: 'acc_1',
+        bankName: 'State Bank of India (SBI)',
+        accountNumber: 'XXXXXX5678',
+        ifsc: 'SBIN0001234',
+        holderName: 'Vendor Pro Agency',
+        initialBalance: 25000.0,
+        currentBalance: 28500.0,
+        accountType: 'current',
+      ),
+      BankAccount(
+        id: 'acc_2',
+        bankName: 'HDFC Bank',
+        accountNumber: 'XXXXXX9012',
+        ifsc: 'HDFC0004321',
+        holderName: 'Vendor Pro Agency',
+        initialBalance: 15000.0,
+        currentBalance: 15000.0,
+        accountType: 'savings',
+      ),
+      BankAccount(
+        id: 'acc_cash',
+        bankName: 'રોકડ કેશ કાઉન્ટર (Cash Drawer)',
+        accountNumber: 'CASH-DRAWER',
+        holderName: 'Daily Cash',
+        initialBalance: 5000.0,
+        currentBalance: 8200.0,
+        accountType: 'cash_drawer',
+      ),
+    ]);
+
+    expenses.addAll([
+      Expense(
+        id: 1,
+        date: DateTime.now().toIso8601String().split('T')[0],
+        category: 'petrol',
+        amount: 350.0,
+        paidTo: 'રમેશભાઈ (લાઇન બોય)',
+        paymentMode: 'cash',
+        remarks: 'રોજિંદો પેટ્રોલ ખર્ચ',
+      ),
+      Expense(
+        id: 2,
+        date: DateTime.now().toIso8601String().split('T')[0],
+        category: 'tea_snacks',
+        amount: 80.0,
+        paidTo: 'જય અંબે ટી સ્ટોલ',
+        paymentMode: 'cash',
+        remarks: 'સ્ટાફ ચા-નાસ્તો',
+      ),
+    ]);
+  }
+
+  // --- Delivery Tracking Helpers ---
+  String getDeliveryStatus(String date, int customerId) {
+    return deliveryLogs['${date}_$customerId'] ?? 'delivered';
+  }
+
+  void setDeliveryStatus(String date, int customerId, String status) {
+    deliveryLogs['${date}_$customerId'] = status;
+  }
+
+  int getDeliveryCountForDate(String date) {
+    int count = 0;
+    for (final c in customers) {
+      if (c.status == 'active' && getDeliveryStatus(date, c.id) == 'delivered') {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  // --- Banking Helpers ---
+  void addBankAccount(BankAccount account) {
+    bankAccounts.add(account);
+  }
+
+  void updateBankAccount(BankAccount account) {
+    final idx = bankAccounts.indexWhere((a) => a.id == account.id);
+    if (idx >= 0) {
+      bankAccounts[idx] = account;
+    }
+  }
+
+  void deleteBankAccount(String id) {
+    bankAccounts.removeWhere((a) => a.id == id);
+    bankTransactions.removeWhere((t) => t.bankAccountId == id);
+  }
+
+  void addBankTransaction(BankTransaction tx) {
+    bankTransactions.add(tx);
+    final accIdx = bankAccounts.indexWhere((a) => a.id == tx.bankAccountId);
+    if (accIdx >= 0) {
+      final acc = bankAccounts[accIdx];
+      double newBal = acc.currentBalance;
+      if (tx.type == 'deposit') {
+        newBal += tx.amount;
+      } else if (tx.type == 'withdrawal') {
+        newBal -= tx.amount;
+      }
+      bankAccounts[accIdx] = acc.copyWith(currentBalance: newBal);
+    }
+  }
+
+  void deleteBankTransaction(String id) {
+    final txIdx = bankTransactions.indexWhere((t) => t.id == id);
+    if (txIdx >= 0) {
+      final tx = bankTransactions[txIdx];
+      final accIdx = bankAccounts.indexWhere((a) => a.id == tx.bankAccountId);
+      if (accIdx >= 0) {
+        final acc = bankAccounts[accIdx];
+        double newBal = acc.currentBalance;
+        if (tx.type == 'deposit') {
+          newBal -= tx.amount;
+        } else if (tx.type == 'withdrawal') {
+          newBal += tx.amount;
+        }
+        bankAccounts[accIdx] = acc.copyWith(currentBalance: newBal);
+      }
+      bankTransactions.removeAt(txIdx);
+    }
   }
 
   // 1. Depot Purchase Sheet Engine

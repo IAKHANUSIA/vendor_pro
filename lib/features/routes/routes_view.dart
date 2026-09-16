@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/database/database_service.dart';
-import '../../core/localization/app_localizations.dart';
 import '../../core/models/route.dart';
 import '../../core/models/salesman.dart';
 

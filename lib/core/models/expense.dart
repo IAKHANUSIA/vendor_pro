@@ -1,7 +1,7 @@
 class Expense {
   final int id;
   final String date; // YYYY-MM-DD
-  final String category; // 'hawker_salary', 'depot_tea_snack', 'fuel_transport', 'stationary', 'misc'
+  final String category; // 'petrol', 'tea_snacks', 'salary', 'maintenance', 'rent', 'misc'
   final String title;
   final double amount;
   final String paymentMode; // 'cash', 'upi', 'bank'
@@ -11,21 +11,27 @@ class Expense {
     required this.id,
     required this.date,
     required this.category,
-    required this.title,
+    String? title,
+    String? paidTo,
     required this.amount,
     this.paymentMode = 'cash',
-    this.notes = '',
-  });
+    String? notes,
+    String? remarks,
+  })  : title = title ?? paidTo ?? '',
+        notes = notes ?? remarks ?? '';
+
+  String get paidTo => title;
+  String get remarks => notes;
 
   factory Expense.fromJson(Map<String, dynamic> json) {
     return Expense(
       id: (json['id'] as num?)?.toInt() ?? 0,
       date: json['date']?.toString() ?? '',
       category: json['category']?.toString() ?? 'misc',
-      title: json['title']?.toString() ?? '',
+      title: json['title']?.toString() ?? json['paidTo']?.toString() ?? '',
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       paymentMode: json['paymentMode']?.toString() ?? 'cash',
-      notes: json['notes']?.toString() ?? '',
+      notes: json['notes']?.toString() ?? json['remarks']?.toString() ?? '',
     );
   }
 
@@ -34,8 +40,10 @@ class Expense {
     'date': date,
     'category': category,
     'title': title,
+    'paidTo': title,
     'amount': amount,
     'paymentMode': paymentMode,
     'notes': notes,
+    'remarks': notes,
   };
 }

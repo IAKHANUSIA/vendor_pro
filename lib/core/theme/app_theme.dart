@@ -22,7 +22,7 @@ class AppTheme {
         bodyLarge: const TextStyle(color: AppColors.textPrimaryDark),
         bodyMedium: const TextStyle(color: AppColors.textSecondaryDark),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.bgCardDark,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -74,7 +74,7 @@ class AppTheme {
         error: AppColors.danger,
       ),
       textTheme: GoogleFonts.outfitTextTheme(ThemeData.light().textTheme),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.bgCardLight,
         elevation: 0,
         shape: RoundedRectangleBorder(

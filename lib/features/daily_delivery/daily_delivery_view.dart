@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/database/database_service.dart';
 import '../../core/models/customer.dart';
 import '../../core/models/item.dart';
 import '../../core/models/salesman.dart';
+import '../../core/services/cloud_sync_service.dart';
+import '../../core/providers/app_providers.dart';
 
-class DailyDeliveryView extends StatefulWidget {
+class DailyDeliveryView extends ConsumerStatefulWidget {
   const DailyDeliveryView({super.key});
 
   @override
-  State<DailyDeliveryView> createState() => _DailyDeliveryViewState();
+  ConsumerState<DailyDeliveryView> createState() => _DailyDeliveryViewState();
 }
 
-class _DailyDeliveryViewState extends State<DailyDeliveryView> {
+class _DailyDeliveryViewState extends ConsumerState<DailyDeliveryView> {
   DateTime _selectedDate = DateTime.now();
   late int _selectedRouteId;
-  final Set<int> _deliveredCustomerIds = {};
 
   final List<String> _dayNamesGu = [
     'રવિવાર', 'સોમવાર', 'મંગળવાર', 'બુધવાર', 'ગુરુવાર', 'શુક્રવાર', 'શનિવાર'
@@ -29,12 +31,17 @@ class _DailyDeliveryViewState extends State<DailyDeliveryView> {
     _selectedRouteId = db.routes.isNotEmpty ? db.routes.first.id : 1;
   }
 
-  void _markAllDelivered(List<Customer> list) {
-    setState(() {
-      _deliveredCustomerIds.addAll(list.map((c) => c.id));
-    });
+  void _markAllDelivered(List<Customer> list, String dateStr) {
+    final db = DatabaseService.instance;
+    for (final c in list) {
+      db.setDeliveryStatus(dateStr, c.id, 'delivered');
+    }
+    notifyDbChanged(ref);
+    if (db.storageMode == 'cloud') {
+      CloudSyncService.instance.syncToCloud(db);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('આ લાઇનના બધા ગ્રાહકોને "પહોંચાડ્યા" માર્ક કરવામાં આવ્યા!')),
+      const SnackBar(content: Text('આ લાઇનના બધા ગ્રાહકોને "પહોંચાડ્યા" માર્ક કરવામાં આવ્યા! ✅')),
     );
   }
 
@@ -117,7 +124,7 @@ class _DailyDeliveryViewState extends State<DailyDeliveryView> {
                     const SizedBox(width: 12),
 
                     ElevatedButton.icon(
-                      onPressed: lineCustomers.isEmpty ? null : () => _markAllDelivered(lineCustomers),
+                      onPressed: lineCustomers.isEmpty ? null : () => _markAllDelivered(lineCustomers, dateStr),
                       icon: const Icon(Icons.done_all, size: 18),
                       label: const Text('બધા પહોંચાડ્યા'),
                     ),
@@ -171,7 +178,7 @@ class _DailyDeliveryViewState extends State<DailyDeliveryView> {
                       itemBuilder: (ctx, index) {
                         final c = lineCustomers[index];
                         final onVacation = db.vacations.any((v) => v.customerId == c.id && v.isActiveOn(dateStr));
-                        final isDelivered = _deliveredCustomerIds.contains(c.id);
+                        final isDelivered = db.getDeliveryStatus(dateStr, c.id) == 'delivered';
 
                         final todayPapers = c.subscriptionItemIds.where((id) {
                           return c.isSubscribedOnDay(id, dayOfWeek, dateStr);
@@ -259,13 +266,12 @@ class _DailyDeliveryViewState extends State<DailyDeliveryView> {
                                   onTap: onVacation
                                       ? null
                                       : () {
-                                          setState(() {
-                                            if (isDelivered) {
-                                              _deliveredCustomerIds.remove(c.id);
-                                            } else {
-                                              _deliveredCustomerIds.add(c.id);
-                                            }
-                                          });
+                                          final newStatus = isDelivered ? 'undelivered' : 'delivered';
+                                          db.setDeliveryStatus(dateStr, c.id, newStatus);
+                                          notifyDbChanged(ref);
+                                          if (db.storageMode == 'cloud') {
+                                            CloudSyncService.instance.syncToCloud(db);
+                                          }
                                         },
                                   borderRadius: BorderRadius.circular(8),
                                   child: Container(
