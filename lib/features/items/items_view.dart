@@ -156,10 +156,28 @@ class _ItemsViewState extends State<ItemsView> {
                                             'રવિવાર: MRP ₹${sunRate.sale} | PTR ₹${sunRate.purchase}',
                                             style: const TextStyle(fontSize: 12, color: AppColors.warningLight),
                                           ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              color: (item.isActive ? AppColors.successGreen : AppColors.danger).withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              item.isActive ? 'સક્રિય' : 'નિષ્ક્રિય',
+                                              style: TextStyle(fontSize: 10, color: item.isActive ? AppColors.successLight : AppColors.dangerLight, fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ],
                                   ),
+                                ),
+                                Switch(
+                                  value: item.isActive,
+                                  activeColor: AppColors.successGreen,
+                                  onChanged: (val) {
+                                    setState(() => item.status = val ? 'active' : 'inactive');
+                                  },
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.edit, color: AppColors.primaryLight, size: 20),

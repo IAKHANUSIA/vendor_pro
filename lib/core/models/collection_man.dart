@@ -1,12 +1,12 @@
-class Salesman {
+class CollectionMan {
   final int id;
   final String name;
   final String mobile;
   final String address;
   final double commissionRate;
-  String status;
+  String status; // 'active' or 'inactive'
 
-  Salesman({
+  CollectionMan({
     required this.id,
     required this.name,
     this.mobile = '',
@@ -17,8 +17,8 @@ class Salesman {
 
   bool get isActive => status == 'active';
 
-  factory Salesman.fromJson(Map<String, dynamic> json) {
-    return Salesman(
+  factory CollectionMan.fromJson(Map<String, dynamic> json) {
+    return CollectionMan(
       id: (json['id'] as num?)?.toInt() ?? 0,
       name: json['name']?.toString() ?? '',
       mobile: json['mobile']?.toString() ?? '',

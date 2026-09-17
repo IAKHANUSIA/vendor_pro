@@ -5,6 +5,7 @@ class DeliveryRoute {
   final int? salesmanId;
   final int? collectionManId;
   final double defaultDeliveryCharge;
+  String status;
 
   DeliveryRoute({
     required this.id,
@@ -13,7 +14,10 @@ class DeliveryRoute {
     this.salesmanId,
     this.collectionManId,
     this.defaultDeliveryCharge = 0.0,
+    this.status = 'active',
   });
+
+  bool get isActive => status == 'active';
 
   factory DeliveryRoute.fromJson(Map<String, dynamic> json) {
     return DeliveryRoute(
@@ -23,6 +27,7 @@ class DeliveryRoute {
       salesmanId: (json['salesmanId'] as num?)?.toInt(),
       collectionManId: (json['collectionManId'] as num?)?.toInt(),
       defaultDeliveryCharge: (json['defaultDeliveryCharge'] as num?)?.toDouble() ?? 0.0,
+      status: json['status']?.toString() ?? 'active',
     );
   }
 
@@ -33,5 +38,6 @@ class DeliveryRoute {
     'salesmanId': salesmanId,
     'collectionManId': collectionManId,
     'defaultDeliveryCharge': defaultDeliveryCharge,
+    'status': status,
   };
 }

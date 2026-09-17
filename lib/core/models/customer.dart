@@ -17,11 +17,13 @@ class Customer {
   final double fixedMonthlyAmount;
   final double openingBalance;
   double currentBalance;
-  final String status; // 'active' or 'inactive'
+  String status; // 'active' or 'inactive'
   final String? inactiveDate;
   final bool delChargeEnabled;
   final double delChargeAmt;
   final String? createdAt;
+
+  bool get isActive => status == 'active';
 
   Customer({
     required this.id,

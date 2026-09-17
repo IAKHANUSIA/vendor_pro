@@ -62,7 +62,7 @@ class Item {
   final double defaultRate;
   final double sundayRate;
   final double monthlyRate;
-  final String status; // 'active', 'inactive'
+  String status; // 'active', 'inactive'
   final Map<String, DayRate> dayRates;
   final List<RateRevision> rateHistory;
 
@@ -81,6 +81,8 @@ class Item {
     List<RateRevision>? rateHistory,
   })  : dayRates = dayRates ?? _defaultDayRates(defaultRate, sundayRate, defaultPurchaseRate, sundayPurchaseRate),
         rateHistory = rateHistory ?? [];
+
+  bool get isActive => status == 'active';
 
   static Map<String, DayRate> _defaultDayRates(
     double defSale,

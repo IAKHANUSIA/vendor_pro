@@ -3,6 +3,7 @@ import '../models/firm.dart';
 import '../models/item.dart';
 import '../models/route.dart';
 import '../models/salesman.dart';
+import '../models/collection_man.dart';
 import '../models/customer.dart';
 import '../models/vacation.dart';
 import '../models/mass_issue.dart';
@@ -94,6 +95,7 @@ class DatabaseService {
   final List<Item> items = [];
   final List<DeliveryRoute> routes = [];
   final List<Salesman> salesmen = [];
+  final List<CollectionMan> collectionMen = [];
   final List<Customer> customers = [];
   final List<Vacation> vacations = [];
   final List<PaperHoliday> paperHolidays = [];
@@ -135,14 +137,19 @@ class DatabaseService {
     );
 
     routes.addAll([
-      DeliveryRoute(id: 1, code: 'R1', name: 'મેઇન બજાર લાઇન', salesmanId: 1),
-      DeliveryRoute(id: 2, code: 'R2', name: 'સ્ટેશન રોડ લાઇન', salesmanId: 2),
-      DeliveryRoute(id: 3, code: 'R3', name: 'સોસાયટી લાઇન', salesmanId: 1),
+      DeliveryRoute(id: 1, code: 'R1', name: 'મેઇન બજાર લાઇન', salesmanId: 1, collectionManId: 1),
+      DeliveryRoute(id: 2, code: 'R2', name: 'સ્ટેશન રોડ લાઇન', salesmanId: 2, collectionManId: 2),
+      DeliveryRoute(id: 3, code: 'R3', name: 'સોસાયટી લાઇન', salesmanId: 1, collectionManId: 1),
     ]);
 
     salesmen.addAll([
-      Salesman(id: 1, name: 'રમેશભાઈ પરમાર', mobile: '9898012345'),
-      Salesman(id: 2, name: 'દિનેશભાઈ સોલંકી', mobile: '9898067890'),
+      Salesman(id: 1, name: 'રમેશભાઈ પરમાર (વિતરક)', mobile: '9898012345'),
+      Salesman(id: 2, name: 'દિનેશભાઈ સોલંકી (વિતરક)', mobile: '9898067890'),
+    ]);
+
+    collectionMen.addAll([
+      CollectionMan(id: 1, name: 'પરેશભાઈ શાહ (ઉઘરાણીદાર)', mobile: '9825012345'),
+      CollectionMan(id: 2, name: 'સંજયભાઈ પટેલ (ઉઘરાણીદાર)', mobile: '9825067890'),
     ]);
 
     items.addAll([
