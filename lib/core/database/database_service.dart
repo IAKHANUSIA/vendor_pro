@@ -211,20 +211,38 @@ class DatabaseService {
       billNotes: 'મહેરબાની કરીને ૧૦ તારીખ પહેલા બિલ ભરી દેવું. આભાર!',
     );
 
-    routes.addAll([
-      DeliveryRoute(id: 1, code: 'R1', name: 'મેઇન બજાર લાઇન', salesmanId: 1, collectionManId: 1),
-      DeliveryRoute(id: 2, code: 'R2', name: 'સ્ટેશન રોડ લાઇન', salesmanId: 2, collectionManId: 2),
-      DeliveryRoute(id: 3, code: 'R3', name: 'સોસાયટી લાઇન', salesmanId: 1, collectionManId: 1),
-    ]);
-
     salesmen.addAll([
-      Salesman(id: 1, name: 'રમેશભાઈ પરમાર (વિતરક)', mobile: '9898012345'),
-      Salesman(id: 2, name: 'દિનેશભાઈ સોલંકી (વિતરક)', mobile: '9898067890'),
+      Salesman(id: 1, name: 'HAHIM', mobile: '', salary: 2250),
+      Salesman(id: 2, name: 'REHAAN', mobile: '7874401041', salary: 2500),
+      Salesman(id: 3, name: 'NIZAM', mobile: '8401996908', salary: 0),
+      Salesman(id: 4, name: 'SAMIR', mobile: '9904380583', salary: 0),
+      Salesman(id: 5, name: 'ARKAN', mobile: '', salary: 0),
+      Salesman(id: 6, name: 'NAIM', mobile: '', salary: 0),
+      Salesman(id: 7, name: 'TAHIR', mobile: '', salary: 0),
+      Salesman(id: 8, name: 'JAMIR', mobile: '', salary: 0),
     ]);
 
     collectionMen.addAll([
-      CollectionMan(id: 1, name: 'પરેશભાઈ શાહ (ઉઘરાણીદાર)', mobile: '9825012345'),
-      CollectionMan(id: 2, name: 'સંજયભાઈ પટેલ (ઉઘરાણીદાર)', mobile: '9825067890'),
+      CollectionMan(id: 1, name: 'ON MAJID', mobile: '', salary: 2000),
+      CollectionMan(id: 2, name: 'HABIB', mobile: '', salary: 1800),
+      CollectionMan(id: 3, name: 'MAJID', mobile: '', salary: 0),
+      CollectionMan(id: 4, name: '1 YEAR', mobile: '', salary: 0),
+      CollectionMan(id: 5, name: 'W. COPI', mobile: '', salary: 0),
+      CollectionMan(id: 6, name: 'FOC', mobile: '', salary: 0),
+      CollectionMan(id: 7, name: 'NIZAM', mobile: '', salary: 0),
+      CollectionMan(id: 8, name: 'F.TIME', mobile: '', salary: 0),
+    ]);
+
+    routes.addAll([
+      DeliveryRoute(id: 1, code: 'L-A', name: 'લાઇન A (Line A)', salesmanId: 1, collectionManId: 1),
+      DeliveryRoute(id: 2, code: 'L-B', name: 'લાઇન B (Line B)', salesmanId: 2, collectionManId: 2),
+      DeliveryRoute(id: 3, code: 'L-C', name: 'લાઇન C (Line C)', salesmanId: 3, collectionManId: 3),
+      DeliveryRoute(id: 4, code: 'L-D', name: 'લાઇન D (Line D)', salesmanId: 1, collectionManId: 4),
+      DeliveryRoute(id: 5, code: 'L-E', name: 'લાઇન E (Line E)', salesmanId: 6, collectionManId: 5),
+      DeliveryRoute(id: 6, code: 'L-F', name: 'લાઇન F (Line F)', salesmanId: 5, collectionManId: 6),
+      DeliveryRoute(id: 7, code: 'L-G', name: 'લાઇન G (Line G)', salesmanId: 1, collectionManId: 7),
+      DeliveryRoute(id: 8, code: 'L-H', name: 'લાઇન H (Line H)', salesmanId: 7, collectionManId: 8),
+      DeliveryRoute(id: 9, code: 'L-GEN', name: 'જનરલ લાઇન (General Line)', salesmanId: 1, collectionManId: 1),
     ]);
 
     items.addAll([
