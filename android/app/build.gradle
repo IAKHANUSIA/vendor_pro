@@ -24,8 +24,8 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.vendorpro.app"
-        compileSdkVersion 34
-        ndkVersion = "25.1.8937393"
+    compileSdkVersion 34
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
