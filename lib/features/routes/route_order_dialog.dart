@@ -23,9 +23,9 @@ class RouteOrderDialog extends StatefulWidget {
 
 class _RouteOrderDialogState extends State<RouteOrderDialog> {
   late int _selectedRouteId;
+  String _seqMode = 'delivery'; // 'delivery' or 'collection'
   List<Customer> _orderedCustomers = [];
-  bool _syncCollectionSeq = true;
-  String _filterQuery = '';
+  bool _syncBothSequences = true;
 
   @override
   void initState() {
@@ -37,10 +37,12 @@ class _RouteOrderDialogState extends State<RouteOrderDialog> {
 
   void _loadCustomers() {
     final db = DatabaseService.instance;
-    _orderedCustomers = db.customers
-        .where((c) => c.routeId == _selectedRouteId)
-        .toList()
-      ..sort((a, b) => (int.tryParse(a.sequenceNo) ?? 0).compareTo(int.tryParse(b.sequenceNo) ?? 0));
+    _orderedCustomers = db.customers.where((c) => c.routeId == _selectedRouteId).toList();
+    if (_seqMode == 'delivery') {
+      _orderedCustomers.sort((a, b) => (int.tryParse(a.sequenceNo) ?? 0).compareTo(int.tryParse(b.sequenceNo) ?? 0));
+    } else {
+      _orderedCustomers.sort((a, b) => a.collectionSequence.compareTo(b.collectionSequence));
+    }
   }
 
   void _moveItem(int oldIndex, int newIndex) {
@@ -71,16 +73,46 @@ class _RouteOrderDialogState extends State<RouteOrderDialog> {
     }
   }
 
+  void _copyDeliveryToCollection() {
+    final db = DatabaseService.instance;
+    final orderedIds = _orderedCustomers.map((c) => c.id).toList();
+    db.updateCollectionSequence(_selectedRouteId, orderedIds, syncDeliverySeq: false);
+    setState(() {
+      _loadCustomers();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ઉઘરાણી ક્રમ = ડિલિવરી ક્રમ સેટ થઈ ગયો!')),
+    );
+  }
+
+  void _copyCollectionToDelivery() {
+    final db = DatabaseService.instance;
+    final orderedIds = _orderedCustomers.map((c) => c.id).toList();
+    db.updateRouteSequence(_selectedRouteId, orderedIds, syncCollectionSeq: false);
+    setState(() {
+      _loadCustomers();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ડિલિવરી ક્રમ = ઉઘરાણી ક્રમ સેટ થઈ ગયો!')),
+    );
+  }
+
   void _save() {
     final db = DatabaseService.instance;
     final orderedIds = _orderedCustomers.map((c) => c.id).toList();
-    db.updateRouteSequence(_selectedRouteId, orderedIds, syncCollectionSeq: _syncCollectionSeq);
+
+    if (_seqMode == 'delivery') {
+      db.updateRouteSequence(_selectedRouteId, orderedIds, syncCollectionSeq: _syncBothSequences);
+    } else {
+      db.updateCollectionSequence(_selectedRouteId, orderedIds, syncDeliverySeq: _syncBothSequences);
+    }
+
     widget.onSaved();
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('લાઇનનો નવો ક્રમ સફળતાપૂર્વક સાચવી લેવાયો છે! (${orderedIds.length} ગ્રાહકો) ✅'),
-        backgroundColor: AppColors.success,
+        backgroundColor: AppColors.successGreen,
       ),
     );
   }
@@ -93,119 +125,155 @@ class _RouteOrderDialogState extends State<RouteOrderDialog> {
     final collectionMan = db.collectionMen.cast<CollectionMan?>().firstWhere((cm) => cm?.id == currentRoute?.collectionManId, orElse: () => null);
 
     return Dialog(
-      backgroundColor: const Color(0xFF161B26),
+      backgroundColor: const Color(0xFF161E2E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Container(
-        width: 860,
+        width: 880,
         height: 720,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(22),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // Header matching Image 3
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.accentCyan.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.swap_vert, color: AppColors.accentCyan, size: 24),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Row(
                       children: [
-                        const Text(
-                          '🔀 લાઇન ક્રમ ગોઠવો (Street Sequence Reorder)',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
-                        ),
+                        Icon(Icons.shuffle, color: Color(0xFF42A5F5), size: 20),
+                        SizedBox(width: 8),
                         Text(
-                          'ગ્રાહકોને પકડીને ઉપર-નીચે ખસેડો જેથી સવારની ડિલિવરી શીટ શેરી ક્રમ મુજબ ગોઠવાય.',
-                          style: TextStyle(fontSize: 11, color: AppColors.textSecondaryDark),
+                          'લાઇન વિતરણ અને ઉઘરાણી ક્રમ ગોઠવો (Sequence Organizer)',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
                         ),
                       ],
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'વિતરણ ક્રમ અને ઉઘરાણી ક્રમ અલગ-અલગ સેટ કરો અથવા બંને સરખા રાખો',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF90A4AE)),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.textSecondaryDark),
+                  icon: const Icon(Icons.close, color: Colors.white70, size: 20),
                   onPressed: () => Navigator.pop(context),
+                  splashRadius: 18,
                 ),
               ],
             ),
-            const Divider(color: Color(0xFF2A3447), height: 20),
+            const SizedBox(height: 14),
 
-            // Route Selector & Staff info banner
+            // Top Mode Switcher Tabs matching Image 3
             Row(
               children: [
-                Expanded(
-                  flex: 3,
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedRouteId,
-                    dropdownColor: const Color(0xFF1E2433),
-                    decoration: const InputDecoration(
-                      labelText: 'ડિલિવરી લાઇન પસંદ કરો',
-                      isDense: true,
-                    ),
-                    items: db.routes.map((r) => DropdownMenuItem(value: r.id, child: Text('${r.code} - ${r.name}'))).toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          _selectedRouteId = v;
-                          _loadCustomers();
-                        });
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Staff info badge
-                Expanded(
-                  flex: 4,
+                // Delivery Seq Tab
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _seqMode = 'delivery';
+                      _loadCustomers();
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E2433),
+                      color: _seqMode == 'delivery' ? const Color(0xFF00838F) : const Color(0xFF141A28),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF2A3447)),
+                      border: Border.all(
+                        color: _seqMode == 'delivery' ? const Color(0xFF00ACC1) : const Color(0xFF2A364F),
+                      ),
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            const Text('🚴 ', style: TextStyle(fontSize: 14)),
-                            Text(
-                              salesman?.name ?? 'વિતરક: -',
-                              style: const TextStyle(fontSize: 11, color: AppColors.primaryTeal, fontWeight: FontWeight.w600),
-                            ),
-                          ],
+                      children: const [
+                        Icon(Icons.pedal_bike, color: Colors.white, size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          '૧. વિતરક / ડિલિવરી ક્રમ (Delivery Seq)',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
-                        Row(
-                          children: [
-                            const Text('💼 ', style: TextStyle(fontSize: 14)),
-                            Text(
-                              collectionMan?.name ?? 'ઉઘરાણી: -',
-                              style: const TextStyle(fontSize: 11, color: AppColors.purpleLight, fontWeight: FontWeight.w600),
-                            ),
-                          ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Collection Seq Tab
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _seqMode = 'collection';
+                      _loadCustomers();
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _seqMode == 'collection' ? const Color(0xFFE65100) : const Color(0xFF141A28),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _seqMode == 'collection' ? const Color(0xFFFF9800) : const Color(0xFF2A364F),
+                      ),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.work_outline, color: Colors.white, size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          '૨. ઉઘરાણી ક્રમ (Collection Seq)',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.accentCyan.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'કુલ: ${_orderedCustomers.length}',
-                            style: const TextStyle(color: AppColors.accentCyan, fontWeight: FontWeight.bold, fontSize: 11),
-                          ),
-                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Quick Sync Buttons Row matching Image 3
+            Row(
+              children: [
+                InkWell(
+                  onTap: _copyDeliveryToCollection,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E283C),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF2D3B55)),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.copy, size: 13, color: Color(0xFFFFCA28)),
+                        SizedBox(width: 6),
+                        Text('ઉઘરાણી ક્રમ = ડિલિવરી ક્રમ કરો', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                InkWell(
+                  onTap: _copyCollectionToDelivery,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E283C),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF2D3B55)),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.copy, size: 13, color: Color(0xFF4FC3F7)),
+                        SizedBox(width: 6),
+                        Text('ડિલિવરી ક્રમ = ઉઘરાણી ક્રમ કરો', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
@@ -214,226 +282,256 @@ class _RouteOrderDialogState extends State<RouteOrderDialog> {
             ),
             const SizedBox(height: 12),
 
-            // Reorderable list header
+            // Line Selector & Staff info row matching Image 3
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1E2433),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(8),
-                  topRight: Radius.circular(8),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF111722),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF222D3F)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  SizedBox(width: 32, child: Text('ખસેડો', style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 11, fontWeight: FontWeight.bold))),
-                  SizedBox(width: 50, child: Text('ક્રમ', textAlign: TextAlign.center, style: TextStyle(color: AppColors.accentCyan, fontSize: 11, fontWeight: FontWeight.bold))),
-                  SizedBox(width: 70, child: Text('કોડ', style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 11, fontWeight: FontWeight.bold))),
-                  Expanded(flex: 3, child: Text('ગ્રાહક નામ અને સરનામું', style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 11, fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('પેપર્સ (સબસ્ક્રિપ્શન)', style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 11, fontWeight: FontWeight.bold))),
-                  SizedBox(width: 80, child: Text('એક્શન', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 11, fontWeight: FontWeight.bold))),
+                  const Text('ડિલિવરી લાઇન:  ', style: TextStyle(color: Color(0xFF42A5F5), fontWeight: FontWeight.bold, fontSize: 13)),
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _selectedRouteId,
+                        dropdownColor: const Color(0xFF1A2336),
+                        isDense: true,
+                        items: db.routes.map((r) => DropdownMenuItem(value: r.id, child: Text('${r.code} - ${r.name}', style: const TextStyle(color: Colors.white, fontSize: 13)))).toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            setState(() {
+                              _selectedRouteId = v;
+                              _loadCustomers();
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Staff Badges
+                  Row(
+                    children: [
+                      const Icon(Icons.pedal_bike, size: 14, color: Color(0xFFFFA726)),
+                      const SizedBox(width: 4),
+                      Text('વિતરક: ${salesman?.name ?? "-"}', style: const TextStyle(color: Color(0xFFFFA726), fontSize: 11, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.work_outline, size: 14, color: Color(0xFFBA68C8)),
+                      const SizedBox(width: 4),
+                      Text('ઉઘરાણી સ્ટાફ: ${collectionMan?.name ?? "-"}', style: const TextStyle(color: Color(0xFFBA68C8), fontSize: 11, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  const Spacer(),
+                  // Both sequences sync checkbox
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Checkbox(
+                          value: _syncBothSequences,
+                          activeColor: const Color(0xFF1E88E5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          onChanged: (v) => setState(() => _syncBothSequences = v ?? true),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text('બંને ક્રમ એકસરખા સાચવવા', style: TextStyle(color: Color(0xFFCFD8DC), fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Reorder Table Header matching Image 3
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1A2336),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+              ),
+              child: Row(
+                children: const [
+                  SizedBox(width: 40, child: Text('ખસેડો', style: TextStyle(color: Color(0xFF90A4AE), fontSize: 11, fontWeight: FontWeight.bold))),
+                  SizedBox(width: 50, child: Text('નવો ક્રમ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF42A5F5), fontSize: 11, fontWeight: FontWeight.bold))),
+                  SizedBox(width: 80, child: Text('ગ્રાહક નં.', style: TextStyle(color: Color(0xFF90A4AE), fontSize: 11, fontWeight: FontWeight.bold))),
+                  Expanded(flex: 4, child: Text('ગ્રાહકનું નામ અને સોસાયટી / સરનામું', style: TextStyle(color: Color(0xFF90A4AE), fontSize: 11, fontWeight: FontWeight.bold))),
+                  Expanded(flex: 3, child: Text('પેપર્સ', style: TextStyle(color: Color(0xFF90A4AE), fontSize: 11, fontWeight: FontWeight.bold))),
+                  SizedBox(width: 90, child: Text('બટનથી ખસેડો', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontSize: 11, fontWeight: FontWeight.bold))),
                 ],
               ),
             ),
 
-            // Reorderable List
+            // Reorderable List matching Image 3
             Expanded(
-              child: _orderedCustomers.isEmpty
-                  ? Center(
-                      child: Text(
-                        'આ લાઇનમાં કોઈ ગ્રાહક નથી.',
-                        style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 14),
-                      ),
-                    )
-                  : ReorderableListView.builder(
-                      itemCount: _orderedCustomers.length,
-                      onReorder: _moveItem,
-                      itemBuilder: (ctx, index) {
-                        final c = _orderedCustomers[index];
-                        final subPapers = c.subscriptionItemIds
-                            .map((id) => db.items.cast<Item?>().firstWhere((i) => i?.id == id, orElse: () => null)?.code)
-                            .where((n) => n != null)
-                            .toList();
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF111722),
+                  borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
+                  border: Border.all(color: const Color(0xFF222D3F)),
+                ),
+                child: _orderedCustomers.isEmpty
+                    ? const Center(child: Text('આ લાઇનમાં કોઈ ગ્રાહક નથી.', style: TextStyle(color: Color(0xFF78909C))))
+                    : Scrollbar(
+                        thumbVisibility: true,
+                        child: ReorderableListView.builder(
+                          itemCount: _orderedCustomers.length,
+                          onReorder: _moveItem,
+                          itemBuilder: (context, index) {
+                            final c = _orderedCustomers[index];
+                            final subPapers = c.subscriptionItemIds
+                                .map((id) => db.items.cast<Item?>().firstWhere((i) => i?.id == id, orElse: () => null)?.name)
+                                .where((n) => n != null)
+                                .toList();
 
-                        return Container(
-                          key: ValueKey(c.id),
-                          margin: const EdgeInsets.symmetric(vertical: 2),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: index.isEven ? const Color(0xFF161B26) : const Color(0xFF1A212E),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFF242C3D)),
-                          ),
-                          child: Row(
-                            children: [
-                              // Drag Handle
-                              const SizedBox(
-                                width: 32,
-                                child: Icon(Icons.drag_indicator, color: Color(0xFF5A6E8C), size: 20),
+                            return Container(
+                              key: ValueKey(c.id),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: index.isEven ? Colors.transparent : const Color(0xFF161E2E).withOpacity(0.5),
+                                border: const Border(bottom: BorderSide(color: Color(0xFF1E283C), width: 0.5)),
                               ),
-
-                              // Sequence Number Badge
-                              SizedBox(
-                                width: 50,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.accentCyan.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(6),
+                              child: Row(
+                                children: [
+                                  // Drag Handle
+                                  const SizedBox(
+                                    width: 40,
+                                    child: Icon(Icons.drag_indicator, color: Color(0xFF546E7A), size: 18),
                                   ),
-                                  child: Text(
-                                    '#${index + 1}',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentCyan, fontSize: 12),
+                                  // New Sequence Number
+                                  SizedBox(
+                                    width: 50,
+                                    child: Center(
+                                      child: Text(
+                                        '${index + 1}',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF42A5F5)),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-
-                              // Code
-                              SizedBox(
-                                width: 70,
-                                child: Text(
-                                  c.code.isNotEmpty ? c.code : '#${c.custNo}',
-                                  style: const TextStyle(color: Color(0xFF8B9CB5), fontSize: 12, fontFamily: 'monospace'),
-                                ),
-                              ),
-
-                              // Name & Address
-                              Expanded(
-                                flex: 3,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
+                                  // Customer Number
+                                  SizedBox(
+                                    width: 80,
+                                    child: Text(
+                                      '#${c.custNo.isNotEmpty ? c.custNo : c.code}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: Color(0xFF29B6F6),
+                                      ),
+                                    ),
+                                  ),
+                                  // Name and Address
+                                  Expanded(
+                                    flex: 4,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        if (c.societyShort.isNotEmpty) ...[
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                        Text(
+                                          c.name,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                                        ),
+                                        Text(
+                                          c.address.isNotEmpty ? c.address : (c.societyShort.isNotEmpty ? c.societyShort : 'સરનામું નથી'),
+                                          style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE)),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Papers
+                                  Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      subPapers.isNotEmpty ? subPapers.join(', ') : '-',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFFFFB74D),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  // Up / Down Buttons matching Image 3
+                                  SizedBox(
+                                    width: 90,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        InkWell(
+                                          onTap: index > 0 ? () => _moveUp(index) : null,
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
                                             decoration: BoxDecoration(
-                                              color: Colors.blue.withOpacity(0.2),
-                                              borderRadius: BorderRadius.circular(3),
+                                              color: index > 0 ? const Color(0xFF1E2D44) : const Color(0xFF151C2A),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: const Color(0xFF2A3B57)),
                                             ),
-                                            child: Text(
-                                              c.societyShort,
-                                              style: const TextStyle(fontSize: 10, color: Colors.lightBlueAccent, fontWeight: FontWeight.bold),
-                                            ),
+                                            child: Icon(Icons.arrow_upward, size: 14, color: index > 0 ? const Color(0xFF64B5F6) : Colors.white24),
                                           ),
-                                          const SizedBox(width: 6),
-                                        ],
-                                        Expanded(
-                                          child: Text(
-                                            c.name,
-                                            style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 13),
-                                            overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        InkWell(
+                                          onTap: index < _orderedCustomers.length - 1 ? () => _moveDown(index) : null,
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color: index < _orderedCustomers.length - 1 ? const Color(0xFF1E2D44) : const Color(0xFF151C2A),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: const Color(0xFF2A3B57)),
+                                            ),
+                                            child: Icon(Icons.arrow_downward, size: 14, color: index < _orderedCustomers.length - 1 ? const Color(0xFF64B5F6) : Colors.white24),
                                           ),
                                         ),
                                       ],
                                     ),
-                                    if (c.address.isNotEmpty)
-                                      Text(
-                                        c.address,
-                                        style: const TextStyle(color: AppColors.textMutedDark, fontSize: 11),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-
-                              // Subscribed Papers
-                              Expanded(
-                                flex: 2,
-                                child: Wrap(
-                                  spacing: 4,
-                                  runSpacing: 2,
-                                  children: subPapers.map((p) {
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary.withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                      child: Text(p!, style: const TextStyle(fontSize: 10, color: AppColors.primaryLight, fontWeight: FontWeight.bold)),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-
-                              // Move Up & Down Buttons
-                              SizedBox(
-                                width: 80,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.arrow_upward, size: 16),
-                                      color: index > 0 ? AppColors.accentCyan : Colors.grey[700],
-                                      onPressed: index > 0 ? () => _moveUp(index) : null,
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                      tooltip: 'ઉપર ખસેડો',
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.arrow_downward, size: 16),
-                                      color: index < _orderedCustomers.length - 1 ? AppColors.accentCyan : Colors.grey[700],
-                                      onPressed: index < _orderedCustomers.length - 1 ? () => _moveDown(index) : null,
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                                      tooltip: 'નીચે ખસેડો',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
-            // Bottom bar with Sync Collection Checkbox and Save button
+            // Footer Actions matching Image 3
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _syncCollectionSeq,
-                      activeColor: AppColors.accentCyan,
-                      onChanged: (v) => setState(() => _syncCollectionSeq = v ?? true),
-                    ),
-                    const Text(
-                      'ઉઘરાણી ક્રમ પણ આ મુજબ જ ગોઠવો (Sync Collection Sequence)',
-                      style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12),
-                    ),
-                  ],
+                Text(
+                  'કુલ: ${_orderedCustomers.length} ગ્રાહકો (આ લાઇનમાં)',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFFFB74D)),
                 ),
-                Row(
-                  children: [
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        side: const BorderSide(color: Color(0xFF3B4861)),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('રદ કરો', style: TextStyle(color: Colors.white70)),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accentCyan,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      ),
-                      onPressed: _orderedCustomers.isEmpty ? null : _save,
-                      icon: const Icon(Icons.check, size: 18),
-                      label: const Text(
-                        'નવો ક્રમ સાચવો (Save Order)',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
+                const Spacer(),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF263238),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('રદ કરો', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2196F3),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: _save,
+                  icon: const Icon(Icons.save, size: 16),
+                  label: const Text('નવો ક્રમ સાચવો (Save Sequence)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
               ],
             ),

@@ -1015,6 +1015,42 @@ class DatabaseService {
     }
   }
 
+  void updateCollectionSequence(int routeId, List<int> orderedCustomerIds, {bool syncDeliverySeq = true}) {
+    for (int i = 0; i < orderedCustomerIds.length; i++) {
+      final custId = orderedCustomerIds[i];
+      final idx = customers.indexWhere((c) => c.id == custId);
+      if (idx != -1) {
+        final c = customers[idx];
+        final updated = Customer(
+          id: c.id,
+          custNo: c.custNo,
+          code: c.code,
+          name: c.name,
+          routeId: c.routeId,
+          salesmanId: c.salesmanId,
+          collectionManId: c.collectionManId,
+          sequenceNo: syncDeliverySeq ? '${i + 1}' : c.sequenceNo,
+          collectionSequence: '${i + 1}',
+          mobile: c.mobile,
+          whatsapp: c.whatsapp,
+          address: c.address,
+          societyShort: c.societyShort,
+          subscriptions: c.subscriptions,
+          billingType: c.billingType,
+          fixedMonthlyAmount: c.fixedMonthlyAmount,
+          openingBalance: c.openingBalance,
+          currentBalance: c.currentBalance,
+          status: c.status,
+          inactiveDate: c.inactiveDate,
+          delChargeEnabled: c.delChargeEnabled,
+          delChargeAmt: c.delChargeAmt,
+          createdAt: c.createdAt,
+        );
+        customers[idx] = updated;
+      }
+    }
+  }
+
   void switchCustomerPaper({
     required int customerId,
     required String effectiveDate,
