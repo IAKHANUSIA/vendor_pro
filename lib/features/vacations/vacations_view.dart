@@ -29,6 +29,7 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
     super.dispose();
   }
 
+  // 1. Customer Vacation Dialog
   void _openVacationDialog() {
     final db = DatabaseService.instance;
     int? selectedCustId = db.customers.isNotEmpty ? db.customers.first.id : null;
@@ -41,53 +42,55 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
           backgroundColor: AppColors.bgCardDark,
-          title: const Text('🌴 નવી રજાની નોંધણી (Vacation)'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<int>(
-                value: selectedCustId,
-                dropdownColor: AppColors.bgCardDark,
-                decoration: const InputDecoration(labelText: 'ગ્રાહક પસંદ કરો'),
-                items: db.customers.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                onChanged: (v) => setDlgState(() => selectedCustId = v),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () async {
-                        final p = await showDatePicker(context: ctx, initialDate: startDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
-                        if (p != null) setDlgState(() => startDate = p);
-                      },
-                      child: InputDecorator(
-                        decoration: const InputDecoration(labelText: 'શરૂ તારીખ'),
-                        child: Text(DateFormat('dd/MM/yyyy').format(startDate), style: const TextStyle(color: Colors.white)),
+          title: const Text('🌴 નવી ગ્રાહક રજા (Customer Vacation)'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<int>(
+                  value: selectedCustId,
+                  dropdownColor: AppColors.bgCardDark,
+                  decoration: const InputDecoration(labelText: 'ગ્રાહક પસંદ કરો'),
+                  items: db.customers.map((c) => DropdownMenuItem(value: c.id, child: Text('${c.name} (${c.code.isNotEmpty ? c.code : c.sequenceNo})'))).toList(),
+                  onChanged: (v) => setDlgState(() => selectedCustId = v),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final p = await showDatePicker(context: ctx, initialDate: startDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                          if (p != null) setDlgState(() => startDate = p);
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(labelText: 'શરૂ તારીખ'),
+                          child: Text(DateFormat('dd/MM/yyyy').format(startDate), style: const TextStyle(color: Colors.white)),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () async {
-                        final p = await showDatePicker(context: ctx, initialDate: endDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
-                        if (p != null) setDlgState(() => endDate = p);
-                      },
-                      child: InputDecorator(
-                        decoration: const InputDecoration(labelText: 'અંતિમ તારીખ'),
-                        child: Text(DateFormat('dd/MM/yyyy').format(endDate), style: const TextStyle(color: Colors.white)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final p = await showDatePicker(context: ctx, initialDate: endDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                          if (p != null) setDlgState(() => endDate = p);
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(labelText: 'અંતિમ તારીખ'),
+                          child: Text(DateFormat('dd/MM/yyyy').format(endDate), style: const TextStyle(color: Colors.white)),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: reasonCtrl,
-                decoration: const InputDecoration(labelText: 'કારણ / નોંધ (વિકલ્પિક)'),
-              ),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonCtrl,
+                  decoration: const InputDecoration(labelText: 'કારણ / નોંધ (વિકલ્પિક)'),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('રદ કરો')),
@@ -113,6 +116,7 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
     );
   }
 
+  // 2. Mass Issue (Bonus Paper) Dialog
   void _openMassIssueDialog() {
     final db = DatabaseService.instance;
     int selectedItemId = db.items.isNotEmpty ? db.items.first.id : 1;
@@ -178,7 +182,6 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
                   ),
                   const SizedBox(height: 14),
 
-                  // Target Audience Radio Options
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -204,7 +207,7 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
                           value: 'day_wise',
                           groupValue: targetType,
                           title: Text('📅 $dayName ના બધા ગ્રાહકોને', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.warningLight)),
-                          subtitle: Text('માત્ર $dayName ના રોજ પેપર લેતા ગ્રાહકોને જ મળશે', style: const TextStyle(fontSize: 11, color: AppColors.textSecondaryDark)),
+                          subtitle: Text('માત્ર $dayName ના રોજ પેપર લેતા ગ્રાહકોને જ મળશે', style: TextStyle(fontSize: 11, color: AppColors.textSecondaryDark)),
                           contentPadding: EdgeInsets.zero,
                           dense: true,
                           onChanged: (v) => setDlgState(() => targetType = v!),
@@ -280,6 +283,120 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
     );
   }
 
+  // 3. Paper Festival Holiday Dialog
+  void _openPaperHolidayDialog() {
+    final db = DatabaseService.instance;
+    int? selectedItemId = 0; // 0 means All Papers
+    DateTime startDate = DateTime.now();
+    DateTime endDate = DateTime.now();
+    final reasonCtrl = TextEditingController(text: 'તહેવાર / પ્રેસ રજા');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          backgroundColor: AppColors.bgCardDark,
+          title: const Text('📰 નવી પેપર / તહેવાર રજા ઉમેરો'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DropdownButtonFormField<int?>(
+                  value: selectedItemId,
+                  dropdownColor: AppColors.bgCardDark,
+                  decoration: const InputDecoration(labelText: 'પેપર પસંદ કરો'),
+                  items: [
+                    const DropdownMenuItem<int?>(value: 0, child: Text('🌐 બધા જ પેપરો (All Papers Holiday)')),
+                    ...db.items.map((i) => DropdownMenuItem<int?>(value: i.id, child: Text('${i.name} (${i.code})'))),
+                  ],
+                  onChanged: (v) => setDlgState(() => selectedItemId = v ?? 0),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final p = await showDatePicker(context: ctx, initialDate: startDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                          if (p != null) {
+                            setDlgState(() {
+                              startDate = p;
+                              if (endDate.isBefore(startDate)) endDate = startDate;
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(labelText: 'શરૂ તારીખ'),
+                          child: Text(DateFormat('dd/MM/yyyy').format(startDate), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final p = await showDatePicker(context: ctx, initialDate: endDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
+                          if (p != null) setDlgState(() => endDate = p);
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(labelText: 'અંતિમ તારીખ'),
+                          child: Text(DateFormat('dd/MM/yyyy').format(endDate), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonCtrl,
+                  decoration: const InputDecoration(labelText: 'તહેવાર / રજાનું નામ (દા.ત. દિવાળી બેસતું વર્ષ, ધૂળેટી)'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('રદ કરો')),
+            ElevatedButton(
+              onPressed: () {
+                final id = db.paperHolidays.isEmpty ? 1 : db.paperHolidays.map((h) => h.id).reduce((a, b) => a > b ? a : b) + 1;
+                final sDate = DateFormat('yyyy-MM-dd').format(startDate);
+                final eDate = DateFormat('yyyy-MM-dd').format(endDate);
+                final reason = reasonCtrl.text.trim().isNotEmpty ? reasonCtrl.text.trim() : 'પ્રેસ રજા';
+
+                if (selectedItemId == 0) {
+                  // Add for all items
+                  for (final it in db.items) {
+                    final hId = db.paperHolidays.isEmpty ? 1 : db.paperHolidays.map((h) => h.id).reduce((a, b) => a > b ? a : b) + 1;
+                    db.paperHolidays.add(PaperHoliday(
+                      id: hId,
+                      itemId: it.id,
+                      startDate: sDate,
+                      endDate: eDate,
+                      reason: reason,
+                    ));
+                  }
+                } else {
+                  db.paperHolidays.add(PaperHoliday(
+                    id: id,
+                    itemId: selectedItemId!,
+                    startDate: sDate,
+                    endDate: eDate,
+                    reason: reason,
+                  ));
+                }
+
+                Navigator.pop(ctx);
+                setState(() {});
+              },
+              child: const Text('સાચવો (Save)'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final db = DatabaseService.instance;
@@ -298,7 +415,7 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
             tabs: const [
               Tab(icon: Icon(Icons.beach_access, size: 18), text: 'ગ્રાહક રજાઓ (Vacations)'),
               Tab(icon: Icon(Icons.card_giftcard, size: 18), text: 'બોનસ પેપર્સ (Mass Issues)'),
-              Tab(icon: Icon(Icons.event_busy, size: 18), text: 'પેપર તહેવાર રજાઓ'),
+              Tab(icon: Icon(Icons.event_busy, size: 18), text: 'પેપર તહેવાર રજાઓ (Holidays)'),
             ],
           ),
         ),
@@ -314,7 +431,7 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('કુલ રજાઓની નોંધણી: ${db.vacations.length}', style: const TextStyle(color: AppColors.textSecondaryDark)),
+                    Text('કુલ ગ્રાહક રજાઓ: ${db.vacations.length}', style: const TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.w600)),
                     ElevatedButton.icon(
                       onPressed: _openVacationDialog,
                       icon: const Icon(Icons.add, size: 18),
@@ -325,7 +442,7 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
                 const SizedBox(height: 12),
                 Expanded(
                   child: db.vacations.isEmpty
-                      ? const Center(child: Text('કોઈ રજા નોંધાયેલ નથી'))
+                      ? const Center(child: Text('કોઈ ગ્રાહક રજા નોંધાયેલ નથી'))
                       : ListView.builder(
                           itemCount: db.vacations.length,
                           itemBuilder: (ctx, i) {
@@ -364,7 +481,7 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('કુલ બોનસ પેપર્સ: ${db.massIssues.length}', style: const TextStyle(color: AppColors.textSecondaryDark)),
+                    Text('કુલ બોનસ પેપર્સ: ${db.massIssues.length}', style: const TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.w600)),
                     ElevatedButton.icon(
                       onPressed: _openMassIssueDialog,
                       icon: const Icon(Icons.add, size: 18),
@@ -409,10 +526,58 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
             ),
           ),
 
-          // Tab 3: Paper Holidays
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(child: Text('કોઈ પેપર રજા નોંધાયેલ નથી')),
+          // Tab 3: Paper Festival Holidays
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('કુલ પેપર તહેવાર રજાઓ: ${db.paperHolidays.length}', style: const TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.w600)),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+                      onPressed: _openPaperHolidayDialog,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('નવી પેપર રજા ઉમેરો'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: db.paperHolidays.isEmpty
+                      ? const Center(child: Text('કોઈ પેપર તહેવાર રજા નોંધાયેલ નથી'))
+                      : ListView.builder(
+                          itemCount: db.paperHolidays.length,
+                          itemBuilder: (ctx, i) {
+                            final h = db.paperHolidays[i];
+                            final it = db.items.cast<Item?>().firstWhere((item) => item?.id == h.itemId, orElse: () => null);
+
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                leading: const CircleAvatar(
+                                  backgroundColor: AppColors.bgSurfaceDark,
+                                  child: Text('🚫'),
+                                ),
+                                title: Text(it?.name ?? 'પેપર #${h.itemId}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                                subtitle: Text(
+                                  'તારીખ: ${h.startDate} થી ${h.endDate} • ${h.reason.isNotEmpty ? h.reason : "પ્રેસ રજા"}',
+                                  style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12),
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.dangerLight),
+                                  onPressed: () {
+                                    setState(() => db.paperHolidays.removeAt(i));
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

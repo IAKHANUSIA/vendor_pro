@@ -208,8 +208,9 @@ class Payment {
     this.paymentMode = 'cash',
     this.receiptNo = '',
     this.billMonthYear = '',
-    this.notes = '',
-  });
+    String notes = '',
+    String? remarks,
+  }) : notes = notes.isNotEmpty ? notes : (remarks ?? '');
 
   factory Payment.fromJson(Map<String, dynamic> json) {
     return Payment(

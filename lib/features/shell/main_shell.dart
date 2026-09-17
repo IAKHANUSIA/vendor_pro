@@ -10,6 +10,8 @@ import '../customers/customers_view.dart';
 import '../vacations/vacations_view.dart';
 import '../billing/billing_view.dart';
 import '../payments/payments_view.dart';
+import '../salesman/salesman_portal_view.dart';
+import '../collection/collection_portal_view.dart';
 import '../ledgers/ledgers_view.dart';
 import '../expenses/expenses_view.dart';
 import '../items/items_view.dart';
@@ -37,14 +39,16 @@ class _MainShellState extends ConsumerState<MainShell> {
     NavModule(icon: Icons.dashboard_rounded, label: 'ડેશબોર્ડ (Dashboard)', emoji: '📊'),
     NavModule(icon: Icons.delivery_dining_rounded, label: 'દૈનિક વિતરણ (Delivery)', emoji: '🛵'),
     NavModule(icon: Icons.storefront_rounded, label: 'ડેપો ખરીદી (Depot)', emoji: '🏬'),
-    NavModule(icon: Icons.people_alt_rounded, label: 'ગ્રાહકો (Customers)', emoji: '👥'),
-    NavModule(icon: Icons.beach_access_rounded, label: 'રજા / બોનસ (Vacations)', emoji: '🌴'),
+    NavModule(icon: Icons.people_alt_rounded, label: 'ગ્રાહક માસ્ટર (Customers)', emoji: '👥'),
+    NavModule(icon: Icons.beach_access_rounded, label: 'રજા કેલેન્ડર / બોનસ (Vacations)', emoji: '🌴'),
     NavModule(icon: Icons.receipt_long_rounded, label: 'માસિક બિલિંગ (Billing)', emoji: '🧾'),
-    NavModule(icon: Icons.payments_rounded, label: 'વસૂલાત (Payments)', emoji: '💰'),
+    NavModule(icon: Icons.payments_rounded, label: 'ઉઘરાણી / UPI (Payments)', emoji: '💰'),
+    NavModule(icon: Icons.pedal_bike_rounded, label: 'હોકર ડિલિવરી શીટ (Salesman)', emoji: '🚴'),
+    NavModule(icon: Icons.work_outline_rounded, label: 'ઉઘરાણી માસ્ટર (Collection)', emoji: '💼'),
     NavModule(icon: Icons.menu_book_rounded, label: 'ખાતાવહી (Ledgers)', emoji: '📚'),
-    NavModule(icon: Icons.account_balance_wallet_rounded, label: 'ખર્ચાઓ અને બેંક (Expenses)', emoji: '💸'),
-    NavModule(icon: Icons.newspaper_rounded, label: 'ન્યૂઝપેપર (Items)', emoji: '📰'),
-    NavModule(icon: Icons.map_rounded, label: 'લાઇનો / હોકર્સ (Routes)', emoji: '🗺️'),
+    NavModule(icon: Icons.account_balance_wallet_rounded, label: 'ખર્ચ અને બેંક (Expenses)', emoji: '💸'),
+    NavModule(icon: Icons.newspaper_rounded, label: 'પેપર માસ્ટર (Items)', emoji: '📰'),
+    NavModule(icon: Icons.map_rounded, label: 'લાઇનો / રૂટ (Routes)', emoji: '🗺️'),
     NavModule(icon: Icons.settings_rounded, label: 'સેટિંગ્સ (Settings)', emoji: '⚙️'),
   ];
 
@@ -159,14 +163,14 @@ class _MainShellState extends ConsumerState<MainShell> {
               selectedIndex: _selectedIndex,
               onDestinationSelected: (index) => setState(() => _selectedIndex = index),
               extended: MediaQuery.of(context).size.width >= 1200,
-              minExtendedWidth: 210,
+              minExtendedWidth: 220,
               destinations: _modules.map((m) {
                 return NavigationRailDestination(
                   icon: Icon(m.icon),
                   selectedIcon: Icon(m.icon, color: AppColors.primaryTeal),
                   label: Text(
                     '${m.emoji} ${m.label}',
-                    style: const TextStyle(fontSize: 13),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                   ),
                 );
               }).toList(),
@@ -198,7 +202,9 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget _buildCurrentView() {
     switch (_selectedIndex) {
       case 0:
-        return const DashboardView();
+        return DashboardView(
+          onNavigate: (index) => setState(() => _selectedIndex = index),
+        );
       case 1:
         return const DailyDeliveryView();
       case 2:
@@ -212,17 +218,23 @@ class _MainShellState extends ConsumerState<MainShell> {
       case 6:
         return const PaymentsView();
       case 7:
-        return const LedgersView();
+        return const SalesmanPortalView();
       case 8:
-        return const ExpensesView();
+        return const CollectionPortalView();
       case 9:
-        return const ItemsView();
+        return const LedgersView();
       case 10:
-        return const RoutesView();
+        return const ExpensesView();
       case 11:
+        return const ItemsView();
+      case 12:
+        return const RoutesView();
+      case 13:
         return const SettingsView();
       default:
-        return const DashboardView();
+        return DashboardView(
+          onNavigate: (index) => setState(() => _selectedIndex = index),
+        );
     }
   }
 }
