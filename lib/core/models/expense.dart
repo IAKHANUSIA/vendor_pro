@@ -6,6 +6,7 @@ class Expense {
   final double amount;
   final String paymentMode; // 'cash', 'upi', 'bank'
   final String notes;
+  final String? bankAccountId;
 
   Expense({
     required this.id,
@@ -15,6 +16,7 @@ class Expense {
     String? paidTo,
     required this.amount,
     this.paymentMode = 'cash',
+    this.bankAccountId,
     String? notes,
     String? remarks,
   })  : title = title ?? paidTo ?? '',
@@ -31,6 +33,7 @@ class Expense {
       title: json['title']?.toString() ?? json['paidTo']?.toString() ?? '',
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       paymentMode: json['paymentMode']?.toString() ?? 'cash',
+      bankAccountId: json['bankAccountId']?.toString(),
       notes: json['notes']?.toString() ?? json['remarks']?.toString() ?? '',
     );
   }
@@ -43,6 +46,7 @@ class Expense {
     'paidTo': title,
     'amount': amount,
     'paymentMode': paymentMode,
+    'bankAccountId': bankAccountId,
     'notes': notes,
     'remarks': notes,
   };

@@ -8,6 +8,7 @@ import '../../core/models/firm.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/services/cloud_sync_service.dart';
 import '../../core/services/license_service.dart';
+import '../auth/pin_auth_dialog.dart';
 
 class SettingsView extends ConsumerStatefulWidget {
   const SettingsView({super.key});
@@ -24,6 +25,8 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   late TextEditingController _addressController;
   late TextEditingController _upiController;
   late TextEditingController _notesController;
+  late TextEditingController _ownerPinController;
+  bool _obscureOwnerPin = true;
 
   late TextEditingController _cloudUrlController;
   late TextEditingController _cloudKeyController;
@@ -39,6 +42,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     _addressController = TextEditingController(text: firm.address);
     _upiController = TextEditingController(text: firm.upiId);
     _notesController = TextEditingController(text: firm.billNotes);
+    _ownerPinController = TextEditingController(text: firm.ownerPin.isNotEmpty ? firm.ownerPin : '1111');
 
     _cloudUrlController = TextEditingController(text: db.cloudUrl);
     _cloudKeyController = TextEditingController(text: db.cloudKey);
@@ -52,6 +56,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     _addressController.dispose();
     _upiController.dispose();
     _notesController.dispose();
+    _ownerPinController.dispose();
     _cloudUrlController.dispose();
     _cloudKeyController.dispose();
     super.dispose();
@@ -459,6 +464,27 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                         hintText: 'દા.ત. મહેરબાની કરીને ૧૦ તારીખ પહેલા બિલ ભરી દેવું. આભાર!',
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _ownerPinController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 8,
+                      obscureText: _obscureOwnerPin,
+                      decoration: InputDecoration(
+                        labelText: '🔐 ઓનર માસ્ટર PIN (Owner Master PIN - ૪ થી ૮ આંકડા) *',
+                        helperText: 'ડિફોલ્ટ PIN: 1111 (સ્ટાફ મોડમાંથી એડમિન પરત જવા અને સંવેદનશીલ કામગીરી માટે)',
+                        counterText: '',
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscureOwnerPin ? Icons.visibility : Icons.visibility_off, size: 20),
+                          onPressed: () => setState(() => _obscureOwnerPin = !_obscureOwnerPin),
+                        ),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'PIN જરૂરી છે';
+                        if (v.trim().length < 4 || v.trim().length > 8) return 'PIN ૪ થી ૮ આંકડાનો હોવો જોઈએ';
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: 20),
                     Align(
                       alignment: Alignment.centerRight,
@@ -495,7 +521,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     children: [
                       Icon(Icons.backup, color: AppColors.primaryTeal, size: 20),
                       SizedBox(width: 8),
-                      Text('૪. ૧૦૦% ઓફલાઇન ડેટા બેકઅપ (Data Backup & Restore)',
+                      Text('૪. ૧૦૦% ઓફલાઇન ડેટા બેકઅપ અને સુરક્ષા (Data Backup & Security)',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -533,6 +559,17 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
+                      ElevatedButton.icon(
+                        onPressed: _confirmResetDatabase,
+                        icon: const Icon(Icons.delete_forever, color: AppColors.errorRed),
+                        label: const Text('ડેટા રીસેટ (PIN Protected)', style: TextStyle(color: AppColors.errorRed)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.errorRed.withOpacity(0.15),
+                          side: BorderSide(color: AppColors.errorRed.withOpacity(0.5)),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -544,9 +581,47 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     );
   }
 
+  void _confirmResetDatabase() async {
+    final db = DatabaseService.instance;
+    final verified = await PinAuthDialog.verify(
+      context,
+      expectedPin: db.firm.ownerPin,
+      title: '🔐 ડેટાબેઝ રીસેટ ઓથોરાઇઝેશન',
+      subtitle: 'ડેટા રીસેટ કરવા માટે કૃપા કરીને Owner Master PIN દાખલ કરો',
+    );
+
+    if (!verified || !mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        title: const Text('⚠️ શું તમે ખરેખર ડેટાબેઝ રીસેટ કરવા માંગો છો?', style: TextStyle(color: AppColors.errorRed)),
+        content: const Text('આનાથી તમામ ગ્રાહકો, બિલો અને પેમેન્ટ્સ ડેમો ડેટામાં ફરીથી સેટ થઈ જશે. આ ક્રિયા પાછી ખેંચી શકાશે નહીં.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('રદ કરો')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.errorRed),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('હા, સંપૂર્ણ રીસેટ કરો'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      db.resetToSampleData();
+      notifyDbChanged(ref);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ ડેટાબેઝ સફળતાપૂર્વક રીસેટ કરવામાં આવ્યો!'), backgroundColor: AppColors.successGreen),
+      );
+    }
+  }
+
   void _saveFirmProfile() {
     if (_formKey.currentState?.validate() ?? false) {
       final db = DatabaseService.instance;
+      final ownerPinText = _ownerPinController.text.trim();
       db.firm = Firm(
         id: db.firm.id,
         name: _nameController.text.trim(),
@@ -555,11 +630,12 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         address: _addressController.text.trim(),
         upiId: _upiController.text.trim(),
         billNotes: _notesController.text.trim(),
+        ownerPin: ownerPinText.isEmpty ? '1111' : ownerPinText,
       );
       notifyDbChanged(ref);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('એજન્સી પ્રોફાઇલ સફળતાપૂર્વક સાચવવામાં આવી! ✅')),
+        const SnackBar(content: Text('એજન્સી પ્રોફાઇલ અને Owner Master PIN સાચવવામાં આવ્યા! ✅')),
       );
     }
   }

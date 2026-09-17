@@ -5,6 +5,7 @@ class Salesman {
   final String address;
   final double commissionRate;
   String status;
+  final String pin; // 4 to 8 digit login PIN
 
   Salesman({
     required this.id,
@@ -13,6 +14,7 @@ class Salesman {
     this.address = '',
     this.commissionRate = 0.0,
     this.status = 'active',
+    this.pin = '1111',
   });
 
   bool get isActive => status == 'active';
@@ -25,6 +27,7 @@ class Salesman {
       address: json['address']?.toString() ?? '',
       commissionRate: (json['commissionRate'] as num?)?.toDouble() ?? 0.0,
       status: json['status']?.toString() ?? 'active',
+      pin: json['pin']?.toString() ?? '1111',
     );
   }
 
@@ -35,5 +38,6 @@ class Salesman {
     'address': address,
     'commissionRate': commissionRate,
     'status': status,
+    'pin': pin,
   };
 }

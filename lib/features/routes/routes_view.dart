@@ -4,6 +4,7 @@ import '../../core/database/database_service.dart';
 import '../../core/models/collection_man.dart';
 import '../../core/models/route.dart';
 import '../../core/models/salesman.dart';
+import 'route_order_dialog.dart';
 
 class RoutesView extends StatefulWidget {
   const RoutesView({super.key});
@@ -25,6 +26,16 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _openRouteOrderDialog([int? routeId]) {
+    showDialog(
+      context: context,
+      builder: (ctx) => RouteOrderDialog(
+        initialRouteId: routeId,
+        onSaved: () => setState(() {}),
+      ),
+    );
   }
 
   // 1. Line / Route Dialog with Salesman & Collection Man Combos
@@ -148,68 +159,98 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
     final nameCtrl = TextEditingController(text: salesman?.name ?? '');
     final mobileCtrl = TextEditingController(text: salesman?.mobile ?? '');
     final addrCtrl = TextEditingController(text: salesman?.address ?? '');
-    final commCtrl = TextEditingController(text: (salesman?.commissionRate ?? 0.0).toStringAsFixed(0));
+    final commCtrl = TextEditingController(text: salesman?.commissionRate.toString() ?? '0');
+    final pinCtrl = TextEditingController(text: salesman?.pin ?? '1111');
+    bool obscurePin = true;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgCardDark,
-        title: Text(salesman == null ? '➕ નવો વિતરક (Salesman) ઉમેરો' : '✏️ વિતરકમાં ફેરફાર'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'વિતરકનું નામ'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          backgroundColor: AppColors.bgCardDark,
+          title: Text(salesman == null ? '➕ નવો વિતરક (Salesman) ઉમેરો' : '✏️ વિતરકમાં ફેરફાર'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'વિતરકનું નામ'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: mobileCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'મોબાઈલ નંબર'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: addrCtrl,
+                  decoration: const InputDecoration(labelText: 'સરનામું'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: commCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'કમિશન / પગાર (₹)'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: pinCtrl,
+                  keyboardType: TextInputType.number,
+                  maxLength: 8,
+                  obscureText: obscurePin,
+                  decoration: InputDecoration(
+                    labelText: '🔐 લૉગિન PIN (૪ થી ૮ આંકડા)',
+                    helperText: 'ડિફોલ્ટ PIN: 1111 (ન્યૂનતમ ૪ થી મહત્તમ ૮ આંકડા)',
+                    counterText: '',
+                    suffixIcon: IconButton(
+                      icon: Icon(obscurePin ? Icons.visibility : Icons.visibility_off, size: 20),
+                      onPressed: () => setDlgState(() => obscurePin = !obscurePin),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: mobileCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'મોબાઈલ નંબર'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('રદ કરો'),
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: addrCtrl,
-              decoration: const InputDecoration(labelText: 'સરનામું'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: commCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'કમિશન / પગાર (₹)'),
+            ElevatedButton(
+              onPressed: () {
+                if (nameCtrl.text.trim().isEmpty) return;
+                final pinText = pinCtrl.text.trim();
+                if (pinText.isNotEmpty && (pinText.length < 4 || pinText.length > 8)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('⚠️ PIN ૪ થી ૮ આંકડાનો હોવો જોઈએ!')),
+                  );
+                  return;
+                }
+                final id = salesman?.id ?? (db.salesmen.isEmpty ? 1 : db.salesmen.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
+                final newSalesman = Salesman(
+                  id: id,
+                  name: nameCtrl.text.trim(),
+                  mobile: mobileCtrl.text.trim(),
+                  address: addrCtrl.text.trim(),
+                  commissionRate: double.tryParse(commCtrl.text) ?? 0.0,
+                  status: salesman?.status ?? 'active',
+                  pin: pinText.isEmpty ? '1111' : pinText,
+                );
+                if (salesman == null) {
+                  db.salesmen.add(newSalesman);
+                } else {
+                  final idx = db.salesmen.indexWhere((s) => s.id == salesman.id);
+                  if (idx != -1) db.salesmen[idx] = newSalesman;
+                }
+                Navigator.pop(ctx);
+                setState(() {});
+              },
+              child: const Text('સાચવો'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('રદ કરો'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameCtrl.text.trim().isEmpty) return;
-              final id = salesman?.id ?? (db.salesmen.isEmpty ? 1 : db.salesmen.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
-              final newSalesman = Salesman(
-                id: id,
-                name: nameCtrl.text.trim(),
-                mobile: mobileCtrl.text.trim(),
-                address: addrCtrl.text.trim(),
-                commissionRate: double.tryParse(commCtrl.text) ?? 0.0,
-                status: salesman?.status ?? 'active',
-              );
-              if (salesman == null) {
-                db.salesmen.add(newSalesman);
-              } else {
-                final idx = db.salesmen.indexWhere((s) => s.id == salesman.id);
-                if (idx != -1) db.salesmen[idx] = newSalesman;
-              }
-              Navigator.pop(ctx);
-              setState(() {});
-            },
-            child: const Text('સાચવો'),
-          ),
-        ],
       ),
     );
   }
@@ -221,67 +262,97 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
     final mobileCtrl = TextEditingController(text: collectionMan?.mobile ?? '');
     final addrCtrl = TextEditingController(text: collectionMan?.address ?? '');
     final commCtrl = TextEditingController(text: (collectionMan?.commissionRate ?? 0.0).toStringAsFixed(0));
+    final pinCtrl = TextEditingController(text: collectionMan?.pin ?? '1111');
+    bool obscurePin = true;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.bgCardDark,
-        title: Text(collectionMan == null ? '➕ નવો ઉઘરાણીદાર (Collection Man) ઉમેરો' : '✏️ ઉઘરાણીદારમાં ફેરફાર'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'ઉઘરાણીદારનું નામ'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          backgroundColor: AppColors.bgCardDark,
+          title: Text(collectionMan == null ? '➕ નવો ઉઘરાણીદાર (Collection Man) ઉમેરો' : '✏️ ઉઘરાણીદારમાં ફેરફાર'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'ઉઘરાણીદારનું નામ'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: mobileCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'મોબાઈલ નંબર'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: addrCtrl,
+                  decoration: const InputDecoration(labelText: 'સરનામું'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: commCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'કમિશન / પગાર (₹)'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: pinCtrl,
+                  keyboardType: TextInputType.number,
+                  maxLength: 8,
+                  obscureText: obscurePin,
+                  decoration: InputDecoration(
+                    labelText: '🔐 લૉગિન PIN (૪ થી ૮ આંકડા)',
+                    helperText: 'ડિફોલ્ટ PIN: 1111 (ન્યૂનતમ ૪ થી મહત્તમ ૮ આંકડા)',
+                    counterText: '',
+                    suffixIcon: IconButton(
+                      icon: Icon(obscurePin ? Icons.visibility : Icons.visibility_off, size: 20),
+                      onPressed: () => setDlgState(() => obscurePin = !obscurePin),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: mobileCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'મોબાઈલ નંબર'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('રદ કરો'),
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: addrCtrl,
-              decoration: const InputDecoration(labelText: 'સરનામું'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: commCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'કમિશન / પગાર (₹)'),
+            ElevatedButton(
+              onPressed: () {
+                if (nameCtrl.text.trim().isEmpty) return;
+                final pinText = pinCtrl.text.trim();
+                if (pinText.isNotEmpty && (pinText.length < 4 || pinText.length > 8)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('⚠️ PIN ૪ થી ૮ આંકડાનો હોવો જોઈએ!')),
+                  );
+                  return;
+                }
+                final id = collectionMan?.id ?? (db.collectionMen.isEmpty ? 1 : db.collectionMen.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
+                final newCollectionMan = CollectionMan(
+                  id: id,
+                  name: nameCtrl.text.trim(),
+                  mobile: mobileCtrl.text.trim(),
+                  address: addrCtrl.text.trim(),
+                  commissionRate: double.tryParse(commCtrl.text) ?? 0.0,
+                  status: collectionMan?.status ?? 'active',
+                  pin: pinText.isEmpty ? '1111' : pinText,
+                );
+                if (collectionMan == null) {
+                  db.collectionMen.add(newCollectionMan);
+                } else {
+                  final idx = db.collectionMen.indexWhere((c) => c.id == collectionMan.id);
+                  if (idx != -1) db.collectionMen[idx] = newCollectionMan;
+                }
+                Navigator.pop(ctx);
+                setState(() {});
+              },
+              child: const Text('સાચવો'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('રદ કરો'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (nameCtrl.text.trim().isEmpty) return;
-              final id = collectionMan?.id ?? (db.collectionMen.isEmpty ? 1 : db.collectionMen.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
-              final newCollectionMan = CollectionMan(
-                id: id,
-                name: nameCtrl.text.trim(),
-                mobile: mobileCtrl.text.trim(),
-                address: addrCtrl.text.trim(),
-                commissionRate: double.tryParse(commCtrl.text) ?? 0.0,
-                status: collectionMan?.status ?? 'active',
-              );
-              if (collectionMan == null) {
-                db.collectionMen.add(newCollectionMan);
-              } else {
-                final idx = db.collectionMen.indexWhere((c) => c.id == collectionMan.id);
-                if (idx != -1) db.collectionMen[idx] = newCollectionMan;
-              }
-              Navigator.pop(ctx);
-              setState(() {});
-            },
-            child: const Text('સાચવો'),
-          ),
-        ],
       ),
     );
   }
@@ -321,10 +392,24 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('કુલ લાઇનો: ${db.routes.length}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textSecondaryDark)),
-                    ElevatedButton.icon(
-                      onPressed: () => _openRouteDialog(),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('નવી લાઇન ઉમેરો'),
+                    Row(
+                      children: [
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.accentCyan),
+                            foregroundColor: AppColors.accentCyan,
+                          ),
+                          onPressed: db.routes.isEmpty ? null : () => _openRouteOrderDialog(),
+                          icon: const Icon(Icons.swap_vert, size: 18),
+                          label: const Text('🔀 લાઇન ક્રમ ગોઠવો (Reorder)'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () => _openRouteDialog(),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('નવી લાઇન ઉમેરો'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -381,6 +466,11 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.swap_vert, size: 20, color: AppColors.accentCyan),
+                                      tooltip: 'આ લાઇનનો ગ્રાહક ક્રમ ગોઠવો',
+                                      onPressed: () => _openRouteOrderDialog(r.id),
+                                    ),
                                     // Active / Inactive Switch
                                     Switch(
                                       value: isActive,
@@ -455,6 +545,18 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                                       child: Text(
                                         isActive ? 'સક્રિય' : 'નિષ્ક્રિય',
                                         style: TextStyle(fontSize: 10, color: isActive ? AppColors.successLight : AppColors.dangerLight, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accentCyan.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '🔒 PIN: ${s.pin}',
+                                        style: const TextStyle(fontSize: 10, color: AppColors.accentCyan, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                                       ),
                                     ),
                                   ],
@@ -541,6 +643,18 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                                       child: Text(
                                         isActive ? 'સક્રિય' : 'નિષ્ક્રિય',
                                         style: TextStyle(fontSize: 10, color: isActive ? AppColors.successLight : AppColors.dangerLight, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.purple.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '🔒 PIN: ${c.pin}',
+                                        style: const TextStyle(fontSize: 10, color: AppColors.purple, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                                       ),
                                     ),
                                   ],

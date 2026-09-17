@@ -90,6 +90,7 @@ class Bill {
 
   double get balanceDue => (finalPayable - paymentReceived).clamp(0.0, double.infinity);
   double get billTotal => finalPayable;
+  double get currentPaperCost => newspaperAmount;
 
   factory Bill.fromJson(Map<String, dynamic> json) {
     final pb = <String, PaperBreakdownItem>{};

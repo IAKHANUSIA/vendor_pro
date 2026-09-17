@@ -11,6 +11,7 @@ class Firm {
   final int billNoStartNum;
   final int billNoPadding;
   final String termsAndConditions;
+  final String ownerPin; // 4 to 8 digit Master PIN
 
   Firm({
     this.id = 'primary',
@@ -26,6 +27,7 @@ class Firm {
     this.billNoPadding = 4,
     String? termsAndConditions,
     String? billNotes,
+    this.ownerPin = '1111',
   }) : termsAndConditions = billNotes ??
             termsAndConditions ??
             'દરેક મહિનાની ૧૦ તારીખ પહેલા બિલની રકમ જમા કરાવી આપવા વિનંતી.';
@@ -48,6 +50,7 @@ class Firm {
       termsAndConditions: json['billNotes']?.toString() ??
           json['termsAndConditions']?.toString() ??
           'દરેક મહિનાની ૧૦ તારીખ પહેલા બિલની રકમ જમા કરાવી આપવા વિનંતી.',
+      ownerPin: json['ownerPin']?.toString() ?? '1111',
     );
   }
 
@@ -65,5 +68,6 @@ class Firm {
     'billNoPadding': billNoPadding,
     'termsAndConditions': termsAndConditions,
     'billNotes': billNotes,
+    'ownerPin': ownerPin,
   };
 }

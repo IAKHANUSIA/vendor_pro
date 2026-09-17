@@ -83,6 +83,10 @@ class Item {
         rateHistory = rateHistory ?? [];
 
   bool get isActive => status == 'active';
+  double get defaultPurchaseRate => dayRates['mon']?.purchase ?? (defaultRate * 0.7);
+  double get sundayPurchaseRate => dayRates['sun']?.purchase ?? (sundayRate * 0.7);
+  double get saleRate => defaultRate;
+  double get purchaseRate => defaultPurchaseRate;
 
   static Map<String, DayRate> _defaultDayRates(
     double defSale,

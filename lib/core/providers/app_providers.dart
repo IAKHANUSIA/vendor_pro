@@ -11,6 +11,85 @@ import '../models/mass_issue.dart';
 import '../models/bill.dart';
 import '../models/expense.dart';
 import '../models/bank_account.dart';
+import '../models/collection_man.dart';
+import '../models/press_return.dart';
+
+// App Role & Session
+enum AppRole {
+  admin,
+  salesman,
+  collection,
+}
+
+class AuthSession {
+  final AppRole role;
+  final Salesman? activeSalesman;
+  final CollectionMan? activeCollectionMan;
+
+  const AuthSession({
+    this.role = AppRole.admin,
+    this.activeSalesman,
+    this.activeCollectionMan,
+  });
+
+  bool get isAdmin => role == AppRole.admin;
+  bool get isSalesman => role == AppRole.salesman;
+  bool get isCollection => role == AppRole.collection;
+
+  String get displayName {
+    switch (role) {
+      case AppRole.admin:
+        return 'એડમિન (Admin)';
+      case AppRole.salesman:
+        return 'વિતરક: ${activeSalesman?.name ?? ""}';
+      case AppRole.collection:
+        return 'ઉઘરાણી: ${activeCollectionMan?.name ?? ""}';
+    }
+  }
+
+  String get roleBadgeLabel {
+    switch (role) {
+      case AppRole.admin:
+        return '👑 એડમિન';
+      case AppRole.salesman:
+        return '🚴‍♂️ ${activeSalesman?.name ?? "વિતરક"}';
+      case AppRole.collection:
+        return '💼 ${activeCollectionMan?.name ?? "કલેક્શન"}';
+    }
+  }
+
+  AuthSession copyWith({
+    AppRole? role,
+    Salesman? activeSalesman,
+    CollectionMan? activeCollectionMan,
+  }) {
+    return AuthSession(
+      role: role ?? this.role,
+      activeSalesman: activeSalesman ?? this.activeSalesman,
+      activeCollectionMan: activeCollectionMan ?? this.activeCollectionMan,
+    );
+  }
+}
+
+class AuthSessionNotifier extends StateNotifier<AuthSession> {
+  AuthSessionNotifier() : super(const AuthSession());
+
+  void setAdmin() {
+    state = const AuthSession(role: AppRole.admin);
+  }
+
+  void setSalesman(Salesman s) {
+    state = AuthSession(role: AppRole.salesman, activeSalesman: s);
+  }
+
+  void setCollection(CollectionMan c) {
+    state = AuthSession(role: AppRole.collection, activeCollectionMan: c);
+  }
+}
+
+final authSessionProvider = StateNotifierProvider<AuthSessionNotifier, AuthSession>((ref) {
+  return AuthSessionNotifier();
+});
 
 // Database Instance Provider
 final databaseProvider = Provider<DatabaseService>((ref) => DatabaseService.instance);
@@ -41,6 +120,11 @@ final routesProvider = Provider<List<DeliveryRoute>>((ref) {
 final salesmenProvider = Provider<List<Salesman>>((ref) {
   ref.watch(dbChangeNotifierProvider);
   return List.unmodifiable(DatabaseService.instance.salesmen);
+});
+
+final collectionMenProvider = Provider<List<CollectionMan>>((ref) {
+  ref.watch(dbChangeNotifierProvider);
+  return List.unmodifiable(DatabaseService.instance.collectionMen);
 });
 
 final customersProvider = Provider<List<Customer>>((ref) {
@@ -86,6 +170,11 @@ final bankAccountsProvider = Provider<List<BankAccount>>((ref) {
 final bankTransactionsProvider = Provider<List<BankTransaction>>((ref) {
   ref.watch(dbChangeNotifierProvider);
   return List.unmodifiable(DatabaseService.instance.bankTransactions);
+});
+
+final pressReturnsProvider = Provider<List<PressReturnEntry>>((ref) {
+  ref.watch(dbChangeNotifierProvider);
+  return List.unmodifiable(DatabaseService.instance.pressReturns);
 });
 
 void notifyDbChanged(WidgetRef ref) {

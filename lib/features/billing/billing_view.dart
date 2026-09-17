@@ -7,6 +7,8 @@ import '../../core/models/bill.dart';
 import '../../core/models/customer.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/printing/print_service.dart';
+import 'whatsapp_express_dialog.dart';
+import '../payments/dynamic_upi_dialog.dart';
 
 class BillingView extends ConsumerStatefulWidget {
   const BillingView({super.key});
@@ -189,11 +191,28 @@ class _BillingViewState extends ConsumerState<BillingView> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
-                    // Print All Bills PDF Button
+                    // WhatsApp Express Bulk Queue Action Button
+                    ElevatedButton.icon(
+                      onPressed: () => WhatsAppExpressDialog.show(
+                        context,
+                        monthBills: monthBills,
+                        firm: firm,
+                        monthYear: '$_selectedYear-${_selectedMonth.toString().padLeft(2, '0')}',
+                      ),
+                      icon: const Icon(Icons.rocket_launch, size: 18),
+                      label: const Text('WhatsApp Express'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.successGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    // Print All Bills PDF Formats Button
                     OutlinedButton.icon(
-                      onPressed: () => PrintService.printMonthBillsPdf(context, filteredBills, firm, '$_selectedYear-${_selectedMonth.toString().padLeft(2, '0')}'),
+                      onPressed: () => _showBulkPrintFormatDialog(context, filteredBills, firm),
                       icon: const Icon(Icons.print, size: 18),
-                      label: const Text('પીડીએફ / પ્રિન્ટ'),
+                      label: const Text('A4 પ્રિન્ટ ફોર્મેટ્સ'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.accentGold,
                         side: const BorderSide(color: AppColors.accentGold),
@@ -476,7 +495,7 @@ class _BillingViewState extends ConsumerState<BillingView> {
             child: Text(statusText, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusColor)),
           ),
           const SizedBox(width: 16),
-          // Actions: Preview, WhatsApp, Payment, Single Print
+          // Actions: Preview, WhatsApp, UPI QR, Payment
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -489,6 +508,14 @@ class _BillingViewState extends ConsumerState<BillingView> {
                 icon: const Icon(Icons.chat, size: 18, color: AppColors.successGreen),
                 tooltip: 'WhatsApp બિલ મોકલો',
                 onPressed: () => _sendWhatsAppBill(context, bill, firm),
+              ),
+              IconButton(
+                icon: const Icon(Icons.qr_code, size: 18, color: AppColors.accentCyan),
+                tooltip: 'લાઇવ UPI QR સ્કેન',
+                onPressed: () {
+                  final cust = ref.read(customersProvider).cast<Customer?>().firstWhere((c) => c?.id == bill.customerId, orElse: () => null);
+                  DynamicUpiDialog.show(context, firm: firm, bill: bill, customer: cust);
+                },
               ),
               IconButton(
                 icon: const Icon(Icons.payments, size: 18, color: AppColors.accentGold),
@@ -715,6 +742,14 @@ class _BillingViewState extends ConsumerState<BillingView> {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('બંધ કરો')),
+          IconButton(
+            tooltip: 'UPI QR સ્કેન',
+            icon: const Icon(Icons.qr_code, color: AppColors.accentCyan),
+            onPressed: () {
+              final cust = ref.read(customersProvider).cast<Customer?>().firstWhere((c) => c?.id == bill.customerId, orElse: () => null);
+              DynamicUpiDialog.show(context, firm: firm, bill: bill, customer: cust);
+            },
+          ),
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(ctx);
@@ -858,4 +893,141 @@ class _BillingViewState extends ConsumerState<BillingView> {
       ),
     );
   }
+
+  // 5. Bulk Print Formats Selector Modal
+  void _showBulkPrintFormatDialog(BuildContext context, List<Bill> bills, dynamic firm) {
+    BillPrintFormat selectedFormat = BillPrintFormat.fourInOneClassic;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          backgroundColor: AppColors.cardDark,
+          title: const Row(
+            children: [
+              Icon(Icons.print, color: AppColors.accentGold),
+              SizedBox(width: 10),
+              Text('A4 બલ્ક બિલ પ્રિન્ટિંગ'),
+            ],
+          ),
+          content: SizedBox(
+            width: 480,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'પસંદ કરેલ ${bills.length} બિલો માટે પ્રિન્ટ ફોર્મેટ પસંદ કરો:',
+                  style: const TextStyle(fontSize: 13, color: AppColors.textMutedDark),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<BillPrintFormat>(
+                  value: selectedFormat,
+                  decoration: const InputDecoration(labelText: 'પ્રિન્ટ લેઆઉટ / ફોર્મેટ', isDense: true),
+                  dropdownColor: AppColors.cardDark,
+                  items: const [
+                    DropdownMenuItem(
+                      value: BillPrintFormat.fourInOneClassic,
+                      child: Text('✂️ A4 ૪-ઇન-૧: ક્લાસિક B/W ક્રેડિટ મેમો'),
+                    ),
+                    DropdownMenuItem(
+                      value: BillPrintFormat.fourInOneModern,
+                      child: Text('✂️ A4 ૪-ઇન-૧: મોડર્ન બ્લુ કાર્ડ (Slate)'),
+                    ),
+                    DropdownMenuItem(
+                      value: BillPrintFormat.fourInOneStub,
+                      child: Text('✂️ A4 ૪-ઇન-૧: સ્લિપ + ઉઘરાણી પાવતી (Stub)'),
+                    ),
+                    DropdownMenuItem(
+                      value: BillPrintFormat.threeInOneStrip,
+                      child: Text('📑 A4 ૩-ઇન-૧: વાઇડ હોરિઝોન્ટલ સ્લિપ'),
+                    ),
+                    DropdownMenuItem(
+                      value: BillPrintFormat.twoInOneHalfPage,
+                      child: Text('📑 A4 ૨-ઇન-૧: વિગતવાર હાફ પેજ બિલ'),
+                    ),
+                    DropdownMenuItem(
+                      value: BillPrintFormat.singleThermal,
+                      child: Text('🧾 ૫૮/૮૦mm થર્મલ પીઓએસ રોલ સ્લિપ'),
+                    ),
+                    DropdownMenuItem(
+                      value: BillPrintFormat.fullPageA4,
+                      child: Text('📄 A4 સંપૂર્ણ પેજ સ્ટેટમેન્ટ ઇન્વોઇસ'),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setModalState(() => selectedFormat = val);
+                  },
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceDark,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.cardBorderDark),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 20, color: AppColors.primaryTeal),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _getFormatDescription(selectedFormat, bills.length),
+                          style: const TextStyle(fontSize: 12, color: AppColors.textLight),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('રદ કરો')),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(ctx);
+                PrintService.printMonthBillsPdf(
+                  context,
+                  bills,
+                  firm,
+                  '$_selectedYear-${_selectedMonth.toString().padLeft(2, '0')}',
+                  format: selectedFormat,
+                );
+              },
+              icon: const Icon(Icons.print),
+              label: const Text('પીડીએફ / પ્રિન્ટ કરો'),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getFormatDescription(BillPrintFormat format, int billCount) {
+    switch (format) {
+      case BillPrintFormat.fourInOneClassic:
+        final pages = (billCount / 4).ceil();
+        return '૧ A4 પેજ પર ૪ કોમ્પેક્ટ ક્રેડિટ મેમો છપાશે (કુલ $pages પેજ). ઓછો કાગળ અને ઓછા ઇંક વપરાશ માટે શ્રેષ્ઠ.';
+      case BillPrintFormat.fourInOneModern:
+        final pages = (billCount / 4).ceil();
+        return '૧ A4 પેજ પર ૪ પ્રીમિયમ કાર્ડ્સ છપાશે (કુલ $pages પેજ). સુંદર બોર્ડર અને સ્લેટ બ્લુ લેઆઉટ.';
+      case BillPrintFormat.fourInOneStub:
+        final pages = (billCount / 4).ceil();
+        return '૧ A4 પેજ પર ૪ બિલ + જમણી બાજુ કલેક્શન કાઉન્ટરફોઇલ પાવતી (Stub) છપાશે (કુલ $pages પેજ).';
+      case BillPrintFormat.threeInOneStrip:
+        final pages = (billCount / 3).ceil();
+        return '૧ A4 પેજ પર ૩ આડી વાઇડ સ્લિપ્સ + સાઇડ રિસીપ્ટ પાવતી છપાશે (કુલ $pages પેજ).';
+      case BillPrintFormat.twoInOneHalfPage:
+        final pages = (billCount / 2).ceil();
+        return '૧ A4 પેજ પર ૨ વિગતવાર કમર્શિયલ ઇન્વોઇસ છપાશે (કુલ $pages પેજ).';
+      case BillPrintFormat.singleThermal:
+        return '૫૮mm અથવા ૮૦mm થર્મલ પ્રિન્ટર માટે રોલ પ્રિન્ટઆઉટ.';
+      case BillPrintFormat.fullPageA4:
+        return 'દરેક ગ્રાહક માટે ૧ આખું A4 પેજ સ્ટેટમેન્ટ છપાશે (કુલ $billCount પેજ).';
+    }
+  }
 }
+

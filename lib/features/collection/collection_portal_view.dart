@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
@@ -6,15 +7,17 @@ import '../../core/database/database_service.dart';
 import '../../core/models/bill.dart';
 import '../../core/models/customer.dart';
 import '../../core/models/route.dart';
+import '../../core/providers/app_providers.dart';
+import '../payments/payment_receipt_dialog.dart';
 
-class CollectionPortalView extends StatefulWidget {
+class CollectionPortalView extends ConsumerStatefulWidget {
   const CollectionPortalView({super.key});
 
   @override
-  State<CollectionPortalView> createState() => _CollectionPortalViewState();
+  ConsumerState<CollectionPortalView> createState() => _CollectionPortalViewState();
 }
 
-class _CollectionPortalViewState extends State<CollectionPortalView> {
+class _CollectionPortalViewState extends ConsumerState<CollectionPortalView> {
   int? _selectedRouteId;
   String _searchQuery = '';
 
@@ -92,19 +95,21 @@ class _CollectionPortalViewState extends State<CollectionPortalView> {
                 if (collectedAmt <= 0) return;
 
                 final pId = db.payments.isEmpty ? 1 : db.payments.map((p) => p.id).reduce((a, b) => a > b ? a : b) + 1;
-                db.payments.add(Payment(
+                final payment = Payment(
                   id: pId,
                   customerId: customer.id,
                   amount: collectedAmt,
                   date: DateTime.now().toIso8601String().split('T')[0],
                   paymentMode: payMode,
                   notes: remarksCtrl.text.trim(),
-                ));
+                );
+                db.payments.add(payment);
 
                 // Update customer balance
                 customer.currentBalance -= collectedAmt;
                 if (customer.currentBalance < 0) customer.currentBalance = 0;
 
+                notifyDbChanged(ref);
                 Navigator.pop(ctx);
                 setState(() {});
 
@@ -114,6 +119,9 @@ class _CollectionPortalViewState extends State<CollectionPortalView> {
                     content: Text('✅ ₹$collectedAmt ની ઉઘરાણી સફળતાપૂર્વક જમા થઈ!'),
                   ),
                 );
+
+                // Prompt digital payment receipt
+                PaymentReceiptDialog.show(context, payment: payment, customer: customer, firm: db.firm);
               },
               child: const Text('જમા કરો (Collect)'),
             ),
@@ -216,11 +224,23 @@ class _CollectionPortalViewState extends State<CollectionPortalView> {
   @override
   Widget build(BuildContext context) {
     final db = DatabaseService.instance;
+    final session = ref.watch(authSessionProvider);
+    final isCollectionRole = session.role == AppRole.collection;
+    final activeColMan = session.activeCollectionMan;
+
+    // Filter available routes based on role
+    final availableRoutes = isCollectionRole && activeColMan != null
+        ? db.routes.where((r) => r.collectionManId == activeColMan.id).toList()
+        : db.routes;
 
     // Filter customers who have pending balance
     final pendingCustomers = db.customers.where((c) {
       if (c.status != 'active') return false;
       if (c.currentBalance <= 0) return false;
+      if (isCollectionRole && activeColMan != null) {
+        // Only show customers from assigned routes
+        if (!availableRoutes.any((r) => r.id == c.routeId)) return false;
+      }
       if (_selectedRouteId != null && c.routeId != _selectedRouteId) return false;
       if (_searchQuery.trim().isNotEmpty) {
         final q = _searchQuery.toLowerCase();
@@ -265,9 +285,29 @@ class _CollectionPortalViewState extends State<CollectionPortalView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '💼 ઉઘરાણી માસ્ટર અને એજન્ટ કલેક્શન પોર્ટલ',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                        Row(
+                          children: [
+                            Text(
+                              isCollectionRole && activeColMan != null
+                                  ? '💼 ${activeColMan.name} - ઉઘરાણી પોર્ટલ'
+                                  : '💼 ઉઘરાણી માસ્ટર અને એજન્ટ કલેક્શન પોર્ટલ',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                            ),
+                            if (isCollectionRole) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentGold.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'કલેક્શન સ્ટાફ મોડ',
+                                  style: TextStyle(fontSize: 10, color: AppColors.accentGold, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -305,7 +345,7 @@ class _CollectionPortalViewState extends State<CollectionPortalView> {
                     decoration: const InputDecoration(isDense: true, labelText: 'લાઇન ફિલ્ટર'),
                     items: [
                       const DropdownMenuItem<int?>(value: null, child: Text('બધી લાઇન')),
-                      ...db.routes.map((r) => DropdownMenuItem<int?>(value: r.id, child: Text(r.name))),
+                      ...availableRoutes.map((r) => DropdownMenuItem<int?>(value: r.id, child: Text(r.name))),
                     ],
                     onChanged: (v) => setState(() => _selectedRouteId = v),
                   ),

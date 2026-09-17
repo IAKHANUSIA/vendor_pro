@@ -33,6 +33,7 @@ class AppColors {
   static const Color warning = Color(0xFFF59E0B); // Amber
   static const Color warningLight = Color(0xFFFBBF24);
   static const Color accentGold = Color(0xFFF59E0B);
+  static const Color accentAmber = Color(0xFFF59E0B);
 
   static const Color danger = Color(0xFFEF4444); // Rose / Red
   static const Color dangerLight = Color(0xFFFB7185);

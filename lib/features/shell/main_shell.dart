@@ -17,6 +17,8 @@ import '../expenses/expenses_view.dart';
 import '../items/items_view.dart';
 import '../routes/routes_view.dart';
 import '../settings/settings_view.dart';
+import '../auth/role_switcher_dialog.dart';
+import '../auth/pin_auth_dialog.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   final Locale currentLocale;
@@ -43,7 +45,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     NavModule(icon: Icons.beach_access_rounded, label: 'રજા કેલેન્ડર / બોનસ (Vacations)', emoji: '🌴'),
     NavModule(icon: Icons.receipt_long_rounded, label: 'માસિક બિલિંગ (Billing)', emoji: '🧾'),
     NavModule(icon: Icons.payments_rounded, label: 'ઉઘરાણી / UPI (Payments)', emoji: '💰'),
-    NavModule(icon: Icons.pedal_bike_rounded, label: 'હોકર ડિલિવરી શીટ (Salesman)', emoji: '🚴'),
+    NavModule(icon: Icons.pedal_bike_rounded, label: 'વિતરક ડિલિવરી શીટ (Salesman)', emoji: '🚴'),
     NavModule(icon: Icons.work_outline_rounded, label: 'ઉઘરાણી માસ્ટર (Collection)', emoji: '💼'),
     NavModule(icon: Icons.menu_book_rounded, label: 'ખાતાવહી (Ledgers)', emoji: '📚'),
     NavModule(icon: Icons.account_balance_wallet_rounded, label: 'ખર્ચ અને બેંક (Expenses)', emoji: '💸'),
@@ -55,6 +57,8 @@ class _MainShellState extends ConsumerState<MainShell> {
   @override
   Widget build(BuildContext context) {
     ref.watch(dbChangeNotifierProvider);
+    final session = ref.watch(authSessionProvider);
+    final firm = ref.watch(firmProvider);
     final db = DatabaseService.instance;
     final isWide = MediaQuery.of(context).size.width >= 900;
     final isCloud = db.storageMode == 'cloud';
@@ -106,8 +110,48 @@ class _MainShellState extends ConsumerState<MainShell> {
           ],
         ),
         actions: [
+          // Role Switcher Badge Pill
+          InkWell(
+            onTap: () => RoleSwitcherDialog.show(context),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: (session.isAdmin
+                        ? AppColors.primaryTeal
+                        : (session.isSalesman ? AppColors.primaryBlue : AppColors.accentGold))
+                    .withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: (session.isAdmin
+                          ? AppColors.primaryTeal
+                          : (session.isSalesman ? AppColors.primaryBlue : AppColors.accentGold))
+                      .withOpacity(0.4),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    session.roleBadgeLabel,
+                    style: TextStyle(
+                      color: session.isAdmin
+                          ? AppColors.primaryTeal
+                          : (session.isSalesman ? AppColors.primaryLight : AppColors.accentGold),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_drop_down, size: 16, color: AppColors.textMutedDark),
+                ],
+              ),
+            ),
+          ),
+          // Storage Mode Badge Pill
           Container(
-            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: (isCloud ? AppColors.accentCyan : AppColors.successGreen).withOpacity(0.15),
@@ -127,7 +171,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  isCloud ? '☁️ Cloud Sync (Live)' : '💾 ૧૦૦% ઓફલાઇન',
+                  isCloud ? '☁️ Cloud' : '💾 ૧૦૦% ઓફલાઇન',
                   style: TextStyle(
                     color: isCloud ? AppColors.accentCyan : AppColors.successGreen,
                     fontSize: 12,
@@ -137,6 +181,7 @@ class _MainShellState extends ConsumerState<MainShell> {
               ],
             ),
           ),
+          // Language toggle
           IconButton(
             onPressed: widget.onToggleLocale,
             icon: Row(
@@ -157,49 +202,151 @@ class _MainShellState extends ConsumerState<MainShell> {
       ),
       body: Row(
         children: [
+          // Sidebar
           if (isWide)
-            NavigationRail(
-              backgroundColor: AppColors.bgCardDark,
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) => setState(() => _selectedIndex = index),
-              extended: MediaQuery.of(context).size.width >= 1200,
-              minExtendedWidth: 220,
-              destinations: _modules.map((m) {
-                return NavigationRailDestination(
-                  icon: Icon(m.icon),
-                  selectedIcon: Icon(m.icon, color: AppColors.primaryTeal),
-                  label: Text(
-                    '${m.emoji} ${m.label}',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                  ),
-                );
-              }).toList(),
-            ),
+            if (session.isAdmin)
+              NavigationRail(
+                backgroundColor: AppColors.bgCardDark,
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+                extended: MediaQuery.of(context).size.width >= 1200,
+                minExtendedWidth: 220,
+                destinations: _modules.map((m) {
+                  return NavigationRailDestination(
+                    icon: Icon(m.icon),
+                    selectedIcon: Icon(m.icon, color: AppColors.primaryTeal),
+                    label: Text(
+                      '${m.emoji} ${m.label}',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  );
+                }).toList(),
+              )
+            else
+              // Staff Mode Simple Sidebar
+              Container(
+                width: 220,
+                color: AppColors.bgCardDark,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: (session.isSalesman ? AppColors.primaryBlue : AppColors.accentGold).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: (session.isSalesman ? AppColors.primaryBlue : AppColors.accentGold).withOpacity(0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            session.isSalesman ? '🚴‍♂️ વિતરક પોર્ટલ' : '💼 કલેક્શન પોર્ટલ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: session.isSalesman ? AppColors.primaryLight : AppColors.accentGold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            session.isSalesman
+                                ? (session.activeSalesman?.name ?? 'વિતરક')
+                                : (session.activeCollectionMan?.name ?? 'કલેક્શન સ્ટાફ'),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ListTile(
+                      leading: Icon(
+                        session.isSalesman ? Icons.delivery_dining : Icons.work_outline,
+                        color: AppColors.primaryTeal,
+                      ),
+                      title: Text(
+                        session.isSalesman ? 'સવારની શીટ' : 'ઉઘરાણી લિસ્ટ',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primaryTeal),
+                      ),
+                      selected: true,
+                      selectedTileColor: AppColors.primaryTeal.withOpacity(0.12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      onTap: () {},
+                    ),
+                    const Spacer(),
+                    // Return to Admin Button
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final verified = await PinAuthDialog.verify(
+                          context,
+                          title: '🔐 Owner Master PIN',
+                          subtitle: 'એડમિન મોડમાં પાછા જવા માટે ૪ થી ૮ આંકડાનો Master PIN નાખો:',
+                          expectedPin: firm.ownerPin.isNotEmpty ? firm.ownerPin : '1111',
+                          roleBadge: '👑 એડમિન ઓથેન્ટિકેશન',
+                        );
+                        if (verified && context.mounted) {
+                          ref.read(authSessionProvider.notifier).setAdmin();
+                          setState(() => _selectedIndex = 0);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('👑 એડમિન મોડ સફળતાપૂર્વક અનલૉક થયો!'),
+                              backgroundColor: AppColors.successGreen,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.lock_open, size: 16),
+                      label: const Text('એડમિન પર પાછા જાઓ', style: TextStyle(fontSize: 11)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.surfaceDark,
+                        foregroundColor: AppColors.accentGold,
+                        side: const BorderSide(color: AppColors.accentGold),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+          // Main View Content
           Expanded(
-            child: _buildCurrentView(),
+            child: _buildCurrentView(session),
           ),
         ],
       ),
       bottomNavigationBar: isWide
           ? null
-          : BottomNavigationBar(
-              currentIndex: _selectedIndex > 4 ? 0 : _selectedIndex,
-              onTap: (index) => setState(() => _selectedIndex = index),
-              backgroundColor: AppColors.bgCardDark,
-              selectedItemColor: AppColors.primaryTeal,
-              unselectedItemColor: AppColors.textMutedDark,
-              type: BottomNavigationBarType.fixed,
-              items: _modules.take(5).map((m) {
-                return BottomNavigationBarItem(
-                  icon: Icon(m.icon),
-                  label: m.label.split(' ')[0],
-                );
-              }).toList(),
-            ),
+          : session.isAdmin
+              ? BottomNavigationBar(
+                  currentIndex: _selectedIndex > 4 ? 0 : _selectedIndex,
+                  onTap: (index) => setState(() => _selectedIndex = index),
+                  backgroundColor: AppColors.bgCardDark,
+                  selectedItemColor: AppColors.primaryTeal,
+                  unselectedItemColor: AppColors.textMutedDark,
+                  type: BottomNavigationBarType.fixed,
+                  items: _modules.take(5).map((m) {
+                    return BottomNavigationBarItem(
+                      icon: Icon(m.icon),
+                      label: m.label.split(' ')[0],
+                    );
+                  }).toList(),
+                )
+              : null,
     );
   }
 
-  Widget _buildCurrentView() {
+  Widget _buildCurrentView(AuthSession session) {
+    if (session.isSalesman) {
+      return const SalesmanPortalView();
+    }
+    if (session.isCollection) {
+      return const CollectionPortalView();
+    }
+
     switch (_selectedIndex) {
       case 0:
         return DashboardView(

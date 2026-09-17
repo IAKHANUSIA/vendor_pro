@@ -5,7 +5,11 @@ import '../../core/constants/app_colors.dart';
 import '../../core/database/database_service.dart';
 import '../../core/models/bill.dart';
 import '../../core/models/customer.dart';
+import '../../core/models/route.dart';
+import '../../core/models/collection_man.dart';
 import '../../core/providers/app_providers.dart';
+import 'dynamic_upi_dialog.dart';
+import 'payment_receipt_dialog.dart';
 
 class PaymentsView extends ConsumerStatefulWidget {
   const PaymentsView({super.key});
@@ -17,6 +21,7 @@ class PaymentsView extends ConsumerStatefulWidget {
 class _PaymentsViewState extends ConsumerState<PaymentsView> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedMode = 'all';
+  int? _selectedCollectionManId;
 
   @override
   void dispose() {
@@ -29,16 +34,38 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
     final payments = ref.watch(paymentsProvider);
     final customers = ref.watch(customersProvider);
     final customerMap = {for (var c in customers) c.id: c};
+    final routes = ref.watch(routesProvider);
+    final routeMap = {for (var r in routes) r.id: r};
+    final bills = ref.watch(billsProvider);
     final firm = ref.watch(firmProvider);
+    final collectionMen = ref.watch(collectionMenProvider);
 
     final filteredPayments = payments.where((p) {
       if (_selectedMode != 'all' && p.paymentMode != _selectedMode) return false;
+
+      final cust = customerMap[p.customerId];
+
+      if (_selectedCollectionManId != null) {
+        final r = cust != null ? routeMap[cust.routeId] : null;
+        if (r?.collectionManId != _selectedCollectionManId) return false;
+      }
+
       if (_searchController.text.trim().isNotEmpty) {
         final q = _searchController.text.trim().toLowerCase();
-        final cName = customerMap[p.customerId]?.name.toLowerCase() ?? '';
-        final cNo = customerMap[p.customerId]?.custNo.toLowerCase() ?? '';
+        final cName = cust?.name.toLowerCase() ?? '';
+        final cNo = cust?.custNo.toLowerCase() ?? '';
+        final cCode = cust?.code.toLowerCase() ?? '';
+        final cMob = cust?.mobile.toLowerCase() ?? '';
         final rec = p.receiptNo.toLowerCase();
-        if (!cName.contains(q) && !cNo.contains(q) && !rec.contains(q)) return false;
+
+        // Check if query matches any bill of this customer or bill number directly
+        final hasMatchingBill = bills.any(
+          (b) => b.customerId == p.customerId && (b.billNo.toLowerCase().contains(q) || b.id.toString().contains(q)),
+        );
+
+        if (!cName.contains(q) && !cNo.contains(q) && !cCode.contains(q) && !cMob.contains(q) && !rec.contains(q) && !hasMatchingBill) {
+          return false;
+        }
       }
       return true;
     }).toList();
@@ -107,7 +134,7 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
                     ),
                     // New Payment Button
                     ElevatedButton.icon(
-                      onPressed: () => _showAddPaymentModal(context, customers),
+                      onPressed: () => _showAddPaymentModal(context, customers, collectionMen, routes, bills),
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('નવી ચૂકવણી જમા કરો'),
                       style: ElevatedButton.styleFrom(
@@ -144,7 +171,7 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
             ),
             const SizedBox(height: 24),
 
-            // Filter Bar
+            // Filter Bar with Bill No / Search & Collection Man combo
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -152,14 +179,18 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.cardBorderDark),
               ),
-              child: Row(
+              child: Wrap(
+                spacing: 14,
+                runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  // Search Bar with Bill No support
                   SizedBox(
                     width: 280,
                     child: TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: 'ગ્રાહક નામ / રસીદ નં...',
+                        hintText: 'શોધો (બિલ નં, ગ્રાહક, રસીદ)...',
                         prefixIcon: const Icon(Icons.search, size: 20),
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -170,7 +201,30 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
-                  const SizedBox(width: 16),
+
+                  // Collection Man Combo Filter
+                  SizedBox(
+                    width: 220,
+                    child: DropdownButtonFormField<int?>(
+                      value: _selectedCollectionManId,
+                      dropdownColor: const Color(0xFF1E2638),
+                      decoration: InputDecoration(
+                        labelText: '💼 ઉઘરાણીદાર',
+                        isDense: true,
+                        filled: true,
+                        fillColor: AppColors.surfaceDark,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(value: null, child: Text('બધા ઉઘરાણીદાર (All)')),
+                        ...collectionMen.map((cm) => DropdownMenuItem<int?>(value: cm.id, child: Text(cm.name))),
+                      ],
+                      onChanged: (v) => setState(() => _selectedCollectionManId = v),
+                    ),
+                  ),
+
+                  // Mode Chips
                   Wrap(
                     spacing: 8,
                     children: [
@@ -262,7 +316,28 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
                               ],
                             ),
                           ),
-                          Text('₹${p.amount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.successGreen)),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('₹${p.amount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.successGreen)),
+                              const SizedBox(height: 4),
+                              if (cust != null)
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    PaymentReceiptDialog.show(context, payment: p, customer: cust, firm: firm);
+                                  },
+                                  icon: const Icon(Icons.receipt_long, size: 14),
+                                  label: const Text('રસીદ', style: TextStyle(fontSize: 11)),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.accentCyan,
+                                    side: const BorderSide(color: AppColors.accentCyan, width: 0.8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     );
@@ -323,60 +398,22 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
 
   // UPI QR Dialog
   void _showDynamicUpiQrDialog(BuildContext context, dynamic firm) {
-    double qrAmount = 0.0;
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setQrState) {
-          final upiUrl = 'upi://pay?pa=${firm.upiId}&pn=${Uri.encodeComponent(firm.name)}${qrAmount > 0 ? '&am=' + qrAmount.toStringAsFixed(2) : ''}&cu=INR';
-          return AlertDialog(
-            backgroundColor: AppColors.cardDark,
-            title: Row(
-              children: [
-                const Icon(Icons.qr_code, color: AppColors.primaryTeal),
-                const SizedBox(width: 10),
-                Text('${firm.name} - UPI QR'),
-              ],
-            ),
-            content: SizedBox(
-              width: 320,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: QrImageView(
-                      data: upiUrl,
-                      version: QrVersions.auto,
-                      size: 200.0,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('UPI ID: ${firm.upiId}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.accentGold)),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    decoration: const InputDecoration(labelText: 'ચોક્કસ રકમ ઉમેરો (Optional Amount ₹)', isDense: true),
-                    keyboardType: TextInputType.number,
-                    onChanged: (v) => setQrState(() => qrAmount = double.tryParse(v) ?? 0.0),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('બંધ કરો')),
-            ],
-          );
-        },
-      ),
-    );
+    DynamicUpiDialog.show(context, firm: firm);
   }
 
-  // Add Payment Modal
-  void _showAddPaymentModal(BuildContext context, List<Customer> customers) {
+  // Add Payment Modal matching Image 4
+  void _showAddPaymentModal(
+    BuildContext context,
+    List<Customer> customers,
+    List<CollectionMan> collectionMen,
+    List<DeliveryRoute> routes,
+    List<Bill> bills,
+  ) {
+    final routeMap = {for (var r in routes) r.id: r};
+    int? modalCollectionManId;
+    String modalSearchQuery = '';
+    final searchCtrl = TextEditingController();
+
     int? selectedCustId = customers.isNotEmpty ? customers.first.id : null;
     double amount = 0.0;
     String mode = 'cash';
@@ -386,93 +423,269 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
+          // Filter customers by collection man and search query (name, code, custNo, mobile, bill no)
+          final filteredCusts = customers.where((c) {
+            if (modalCollectionManId != null) {
+              final r = routeMap[c.routeId];
+              if (r?.collectionManId != modalCollectionManId) return false;
+            }
+
+            if (modalSearchQuery.trim().isNotEmpty) {
+              final q = modalSearchQuery.toLowerCase();
+              final matchName = c.name.toLowerCase().contains(q);
+              final matchMobile = c.mobile.contains(q);
+              final matchCode = c.code.toLowerCase().contains(q);
+              final matchCustNo = c.custNo.contains(q);
+              final matchBill = bills.any((b) => b.customerId == c.id && (b.billNo.toLowerCase().contains(q) || b.id.toString().contains(q)));
+
+              if (!matchName && !matchMobile && !matchCode && !matchCustNo && !matchBill) {
+                return false;
+              }
+            }
+            return true;
+          }).toList();
+
+          if (selectedCustId != null && !filteredCusts.any((c) => c.id == selectedCustId)) {
+            selectedCustId = filteredCusts.isNotEmpty ? filteredCusts.first.id : null;
+          }
+
           final selectedCust = customers.cast<Customer?>().firstWhere((c) => c?.id == selectedCustId, orElse: () => null);
-          return AlertDialog(
-            backgroundColor: AppColors.cardDark,
-            title: const Row(
-              children: [
-                Icon(Icons.add_card, color: AppColors.successGreen),
-                SizedBox(width: 10),
-                Text('નવી ચૂકવણી જમા કરો'),
-              ],
-            ),
-            content: SizedBox(
-              width: 440,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DropdownButtonFormField<int>(
-                    value: selectedCustId,
-                    decoration: const InputDecoration(labelText: 'ગ્રાહક પસંદ કરો (Select Customer)', isDense: true),
-                    dropdownColor: AppColors.cardDark,
-                    items: customers.map((c) => DropdownMenuItem(value: c.id, child: Text('${c.custNo.isNotEmpty ? "#" + c.custNo + " - " : ""}${c.name} (બાકી: ₹${c.currentBalance.toStringAsFixed(0)})'))).toList(),
-                    onChanged: (val) {
-                      setModalState(() {
-                        selectedCustId = val;
-                      });
-                    },
-                  ),
-                  if (selectedCust != null) ...[
-                    const SizedBox(height: 8),
-                    Text('હાલની બાકી રકમ: ₹${selectedCust.currentBalance.toStringAsFixed(0)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.errorRed)),
-                  ],
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    decoration: const InputDecoration(labelText: 'જમા મળતી રકમ (₹) *'),
-                    keyboardType: TextInputType.number,
-                    onChanged: (v) => amount = double.tryParse(v) ?? 0.0,
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: mode,
-                    decoration: const InputDecoration(labelText: 'ચૂકવણી પદ્ધતિ (Mode)', isDense: true),
-                    dropdownColor: AppColors.cardDark,
-                    items: const [
-                      DropdownMenuItem(value: 'cash', child: Text('રોકડ (Cash)')),
-                      DropdownMenuItem(value: 'gpay', child: Text('Google Pay / UPI')),
-                      DropdownMenuItem(value: 'phonepe', child: Text('PhonePe / Paytm')),
-                      DropdownMenuItem(value: 'cheque', child: Text('ચેક (Cheque)')),
-                    ],
-                    onChanged: (v) => setModalState(() => mode = v ?? 'cash'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    decoration: const InputDecoration(labelText: 'નોંધ / રસીદ નંબર'),
-                    onChanged: (v) => notes = v,
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('રદ કરો')),
-              ElevatedButton.icon(
-                onPressed: () {
-                  if (selectedCustId == null || amount <= 0) return;
-                  Navigator.pop(ctx);
-                  final db = ref.read(databaseProvider);
-                  final p = Payment(
-                    id: DateTime.now().millisecondsSinceEpoch,
-                    customerId: selectedCustId!,
-                    date: DateTime.now().toIso8601String().split('T')[0],
-                    amount: amount,
-                    paymentMode: mode,
-                    notes: notes,
-                  );
-                  db.recordPayment(p);
-                  notifyDbChanged(ref);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('₹${amount.toStringAsFixed(0)} ની ચૂકવણી જમા થઈ ગઈ!'),
-                      backgroundColor: AppColors.successGreen,
+
+          return Dialog(
+            backgroundColor: const Color(0xFF1E2638),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Container(
+              width: 520,
+              padding: const EdgeInsets.all(22),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Modal Header matching Image 4
+                    Row(
+                      children: const [
+                        Icon(Icons.add_card, color: Color(0xFF00E676), size: 24),
+                        SizedBox(width: 10),
+                        Text(
+                          'નવી ચૂકવણી જમા કરો',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                },
-                icon: const Icon(Icons.check),
-                label: const Text('જમા કરો'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.successGreen),
+                    const SizedBox(height: 16),
+
+                    // Filter row inside modal: Collection Man & Search Bar
+                    Row(
+                      children: [
+                        // Collection Man combo
+                        Expanded(
+                          flex: 2,
+                          child: DropdownButtonFormField<int?>(
+                            value: modalCollectionManId,
+                            dropdownColor: const Color(0xFF141A28),
+                            decoration: InputDecoration(
+                              labelText: '💼 ઉઘરાણીદાર',
+                              isDense: true,
+                              filled: true,
+                              fillColor: const Color(0xFF141A28),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                            ),
+                            items: [
+                              const DropdownMenuItem<int?>(value: null, child: Text('બધા (All)', style: TextStyle(fontSize: 12, color: Colors.white))),
+                              ...collectionMen.map((cm) => DropdownMenuItem<int?>(value: cm.id, child: Text(cm.name, style: const TextStyle(fontSize: 12, color: Colors.white)))),
+                            ],
+                            onChanged: (v) => setModalState(() => modalCollectionManId = v),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        // Search by Bill No / Name
+                        Expanded(
+                          flex: 3,
+                          child: TextField(
+                            controller: searchCtrl,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.search, size: 16, color: AppColors.textSecondaryDark),
+                              labelText: 'બિલ નં / ગ્રાહક શોધો',
+                              hintText: 'દા.ત. #101, B-101, રમેશ...',
+                              isDense: true,
+                              filled: true,
+                              fillColor: const Color(0xFF141A28),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                            ),
+                            onChanged: (v) => setModalState(() => modalSearchQuery = v),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Customer Selection Dropdown matching Image 4
+                    const Text('ગ્રાહક પસંદ કરો (Select Customer)', style: TextStyle(fontSize: 12, color: Color(0xFF90A4AE), fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<int>(
+                      value: selectedCustId,
+                      dropdownColor: const Color(0xFF141A28),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF141A28),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                      ),
+                      items: filteredCusts.map((c) {
+                        return DropdownMenuItem(
+                          value: c.id,
+                          child: Text(
+                            '#${c.custNo.isNotEmpty ? c.custNo : c.id} - ${c.name} (બાકી: ₹${c.currentBalance.toStringAsFixed(0)})',
+                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setModalState(() {
+                          selectedCustId = val;
+                        });
+                      },
+                    ),
+
+                    // Prominent Balance Alert matching Image 4
+                    if (selectedCust != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'હાલની બાકી રકમ: ₹${selectedCust.currentBalance.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFF5252),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+
+                    // Amount Input
+                    const Text('જમા મળતી રકમ (₹) *', style: TextStyle(fontSize: 12, color: Color(0xFF90A4AE), fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        hintText: 'દા.ત. 320',
+                        filled: true,
+                        fillColor: const Color(0xFF141A28),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      onChanged: (v) => amount = double.tryParse(v) ?? 0.0,
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Payment Mode Dropdown matching Image 4
+                    const Text('ચૂકવણી પદ્ધતિ (Mode)', style: TextStyle(fontSize: 12, color: Color(0xFF90A4AE), fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: mode,
+                      dropdownColor: const Color(0xFF141A28),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF141A28),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'cash', child: Text('રોકડ (Cash)', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
+                        DropdownMenuItem(value: 'gpay', child: Text('Google Pay / UPI', style: TextStyle(color: Colors.white, fontSize: 13))),
+                        DropdownMenuItem(value: 'phonepe', child: Text('PhonePe / Paytm', style: TextStyle(color: Colors.white, fontSize: 13))),
+                        DropdownMenuItem(value: 'cheque', child: Text('ચેક (Cheque)', style: TextStyle(color: Colors.white, fontSize: 13))),
+                      ],
+                      onChanged: (v) => setModalState(() => mode = v ?? 'cash'),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Notes / Receipt No
+                    const Text('નોંધ / રસીદ નંબર', style: TextStyle(fontSize: 12, color: Color(0xFF90A4AE), fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        hintText: 'દા.ત. REC-001',
+                        filled: true,
+                        fillColor: const Color(0xFF141A28),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                      ),
+                      onChanged: (v) => notes = v,
+                    ),
+                    const SizedBox(height: 22),
+
+                    // Footer Buttons matching Image 4
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('રદ કરો', style: TextStyle(color: Color(0xFF42A5F5), fontWeight: FontWeight.bold, fontSize: 14)),
+                        ),
+                        const SizedBox(width: 14),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            if (selectedCustId == null || amount <= 0) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('કૃપા કરીને રકમ દાખલ કરો!')),
+                              );
+                              return;
+                            }
+                            Navigator.pop(ctx);
+                            final db = ref.read(databaseProvider);
+                            final p = Payment(
+                              id: DateTime.now().millisecondsSinceEpoch,
+                              customerId: selectedCustId!,
+                              date: DateTime.now().toIso8601String().split('T')[0],
+                              amount: amount,
+                              paymentMode: mode,
+                              notes: notes,
+                            );
+                            db.recordPayment(p);
+                            notifyDbChanged(ref);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('₹${amount.toStringAsFixed(0)} ની ચૂકવણી જમા થઈ ગઈ!'),
+                                backgroundColor: AppColors.successGreen,
+                              ),
+                            );
+                            if (selectedCust != null) {
+                              PaymentReceiptDialog.show(context, payment: p, customer: selectedCust, firm: db.firm);
+                            }
+                          },
+                          icon: const Icon(Icons.check, size: 18),
+                          label: const Text('જમા કરો', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00C853),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           );
         },
       ),

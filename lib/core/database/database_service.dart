@@ -10,6 +10,61 @@ import '../models/mass_issue.dart';
 import '../models/bill.dart';
 import '../models/expense.dart';
 import '../models/bank_account.dart';
+import '../models/press_return.dart';
+
+class DailyCashbookSummary {
+  final String dateStr;
+  final double openingCash;
+  final double cashCollection;
+  final double otherIncome;
+  final double totalCashInflow;
+  final double cashExpenses;
+  final double bankDeposits;
+  final double totalCashOutflow;
+  final double closingCashInHand;
+  final List<Payment> todaysCashPayments;
+  final List<Expense> todaysCashExpenses;
+  final List<BankTransaction> todaysBankDeposits;
+
+  DailyCashbookSummary({
+    required this.dateStr,
+    required this.openingCash,
+    required this.cashCollection,
+    this.otherIncome = 0.0,
+    required this.totalCashInflow,
+    required this.cashExpenses,
+    required this.bankDeposits,
+    required this.totalCashOutflow,
+    required this.closingCashInHand,
+    required this.todaysCashPayments,
+    required this.todaysCashExpenses,
+    required this.todaysBankDeposits,
+  });
+}
+
+class MonthlyProfitLossSummary {
+  final String monthYear;
+  final double grossCustomerBilling;
+  final double totalDeliveryCharges;
+  final double totalPressPurchaseCost;
+  final double totalReturnCredits;
+  final double netPressPurchaseCost;
+  final double totalSalesmanCommission;
+  final double totalOperatingExpenses;
+  final double netEstimatedProfit;
+
+  MonthlyProfitLossSummary({
+    required this.monthYear,
+    required this.grossCustomerBilling,
+    required this.totalDeliveryCharges,
+    required this.totalPressPurchaseCost,
+    required this.totalReturnCredits,
+    required this.netPressPurchaseCost,
+    required this.totalSalesmanCommission,
+    required this.totalOperatingExpenses,
+    required this.netEstimatedProfit,
+  });
+}
 
 class DepotItemDemand {
   final int id;
@@ -105,6 +160,7 @@ class DatabaseService {
   final List<Expense> expenses = [];
   final List<BankAccount> bankAccounts = [];
   final List<BankTransaction> bankTransactions = [];
+  final List<PressReturnEntry> pressReturns = [];
   final Map<String, String> deliveryLogs = {}; // date_customerId -> 'delivered' | 'undelivered' | 'hold'
 
   // SaaS Multi-Tenant & Licensing Properties
@@ -124,6 +180,25 @@ class DatabaseService {
     if (isInitialized) return;
     _seedDefaultData();
     isInitialized = true;
+  }
+
+  void resetToSampleData() {
+    items.clear();
+    routes.clear();
+    salesmen.clear();
+    collectionMen.clear();
+    customers.clear();
+    vacations.clear();
+    paperHolidays.clear();
+    massIssues.clear();
+    bills.clear();
+    payments.clear();
+    expenses.clear();
+    bankAccounts.clear();
+    bankTransactions.clear();
+    pressReturns.clear();
+    deliveryLogs.clear();
+    _seedDefaultData();
   }
 
   void _seedDefaultData() {
@@ -286,6 +361,29 @@ class DatabaseService {
         paidTo: 'જય અંબે ટી સ્ટોલ',
         paymentMode: 'cash',
         remarks: 'સ્ટાફ ચા-નાસ્તો',
+      ),
+    ]);
+
+    pressReturns.addAll([
+      PressReturnEntry(
+        id: 1,
+        date: DateTime.now().toIso8601String().split('T')[0],
+        itemId: 1,
+        itemName: 'ગુજરાત સમાચાર',
+        copies: 12,
+        creditRate: 3.32,
+        creditAmount: 39.84,
+        notes: 'વધારાની નકલો પ્રેસમાં જમા',
+      ),
+      PressReturnEntry(
+        id: 2,
+        date: DateTime.now().toIso8601String().split('T')[0],
+        itemId: 2,
+        itemName: 'દિવ્ય ભાસ્કર',
+        copies: 8,
+        creditRate: 3.32,
+        creditAmount: 26.56,
+        notes: 'અનસોલ્ડ કોપી જમા',
       ),
     ]);
   }
@@ -769,7 +867,250 @@ class DatabaseService {
     return entries;
   }
 
-  // 5. Import JSON Backup
+  // 5. Customer Sequencing & Route Ordering
+  void insertCustomerAtSequence(Customer newCustomer, int? targetSeq, int routeId, {bool syncCollectionSeq = true}) {
+    final routeCusts = customers.where((c) => c.routeId == routeId && c.id != newCustomer.id).toList();
+
+    if (targetSeq != null && targetSeq > 0) {
+      final toShift = routeCusts.where((c) => (int.tryParse(c.sequenceNo) ?? 0) >= targetSeq).toList()
+        ..sort((a, b) => (int.tryParse(b.sequenceNo) ?? 0).compareTo(int.tryParse(a.sequenceNo) ?? 0));
+
+      for (final c in toShift) {
+        final curSeq = int.tryParse(c.sequenceNo) ?? 0;
+        final idx = customers.indexWhere((item) => item.id == c.id);
+        if (idx != -1) {
+          final updated = Customer(
+            id: c.id,
+            custNo: c.custNo,
+            code: c.code,
+            name: c.name,
+            routeId: c.routeId,
+            salesmanId: c.salesmanId,
+            collectionManId: c.collectionManId,
+            sequenceNo: '${curSeq + 1}',
+            collectionSequence: syncCollectionSeq ? '${curSeq + 1}' : c.collectionSequence,
+            mobile: c.mobile,
+            whatsapp: c.whatsapp,
+            address: c.address,
+            societyShort: c.societyShort,
+            subscriptions: c.subscriptions,
+            billingType: c.billingType,
+            fixedMonthlyAmount: c.fixedMonthlyAmount,
+            openingBalance: c.openingBalance,
+            currentBalance: c.currentBalance,
+            status: c.status,
+            inactiveDate: c.inactiveDate,
+            delChargeEnabled: c.delChargeEnabled,
+            delChargeAmt: c.delChargeAmt,
+            createdAt: c.createdAt,
+          );
+          customers[idx] = updated;
+        }
+      }
+
+      final custToInsert = Customer(
+        id: newCustomer.id,
+        custNo: newCustomer.custNo,
+        code: newCustomer.code,
+        name: newCustomer.name,
+        routeId: newCustomer.routeId,
+        salesmanId: newCustomer.salesmanId,
+        collectionManId: newCustomer.collectionManId,
+        sequenceNo: '$targetSeq',
+        collectionSequence: syncCollectionSeq ? '$targetSeq' : newCustomer.collectionSequence,
+        mobile: newCustomer.mobile,
+        whatsapp: newCustomer.whatsapp,
+        address: newCustomer.address,
+        societyShort: newCustomer.societyShort,
+        subscriptions: newCustomer.subscriptions,
+        billingType: newCustomer.billingType,
+        fixedMonthlyAmount: newCustomer.fixedMonthlyAmount,
+        openingBalance: newCustomer.openingBalance,
+        currentBalance: newCustomer.currentBalance,
+        status: newCustomer.status,
+        inactiveDate: newCustomer.inactiveDate,
+        delChargeEnabled: newCustomer.delChargeEnabled,
+        delChargeAmt: newCustomer.delChargeAmt,
+        createdAt: newCustomer.createdAt ?? DateTime.now().toIso8601String(),
+      );
+      final existingIdx = customers.indexWhere((c) => c.id == newCustomer.id);
+      if (existingIdx != -1) {
+        customers[existingIdx] = custToInsert;
+      } else {
+        customers.add(custToInsert);
+      }
+    } else {
+      final maxSeq = routeCusts.fold<int>(0, (max, c) {
+        final s = int.tryParse(c.sequenceNo) ?? 0;
+        return s > max ? s : max;
+      });
+      final nextSeq = maxSeq + 1;
+      final custToInsert = Customer(
+        id: newCustomer.id,
+        custNo: newCustomer.custNo,
+        code: newCustomer.code,
+        name: newCustomer.name,
+        routeId: newCustomer.routeId,
+        salesmanId: newCustomer.salesmanId,
+        collectionManId: newCustomer.collectionManId,
+        sequenceNo: '$nextSeq',
+        collectionSequence: syncCollectionSeq ? '$nextSeq' : newCustomer.collectionSequence,
+        mobile: newCustomer.mobile,
+        whatsapp: newCustomer.whatsapp,
+        address: newCustomer.address,
+        societyShort: newCustomer.societyShort,
+        subscriptions: newCustomer.subscriptions,
+        billingType: newCustomer.billingType,
+        fixedMonthlyAmount: newCustomer.fixedMonthlyAmount,
+        openingBalance: newCustomer.openingBalance,
+        currentBalance: newCustomer.currentBalance,
+        status: newCustomer.status,
+        inactiveDate: newCustomer.inactiveDate,
+        delChargeEnabled: newCustomer.delChargeEnabled,
+        delChargeAmt: newCustomer.delChargeAmt,
+        createdAt: newCustomer.createdAt ?? DateTime.now().toIso8601String(),
+      );
+      final existingIdx = customers.indexWhere((c) => c.id == newCustomer.id);
+      if (existingIdx != -1) {
+        customers[existingIdx] = custToInsert;
+      } else {
+        customers.add(custToInsert);
+      }
+    }
+  }
+
+  void updateRouteSequence(int routeId, List<int> orderedCustomerIds, {bool syncCollectionSeq = true}) {
+    for (int i = 0; i < orderedCustomerIds.length; i++) {
+      final custId = orderedCustomerIds[i];
+      final idx = customers.indexWhere((c) => c.id == custId);
+      if (idx != -1) {
+        final c = customers[idx];
+        final updated = Customer(
+          id: c.id,
+          custNo: c.custNo,
+          code: c.code,
+          name: c.name,
+          routeId: c.routeId,
+          salesmanId: c.salesmanId,
+          collectionManId: c.collectionManId,
+          sequenceNo: '${i + 1}',
+          collectionSequence: syncCollectionSeq ? '${i + 1}' : c.collectionSequence,
+          mobile: c.mobile,
+          whatsapp: c.whatsapp,
+          address: c.address,
+          societyShort: c.societyShort,
+          subscriptions: c.subscriptions,
+          billingType: c.billingType,
+          fixedMonthlyAmount: c.fixedMonthlyAmount,
+          openingBalance: c.openingBalance,
+          currentBalance: c.currentBalance,
+          status: c.status,
+          inactiveDate: c.inactiveDate,
+          delChargeEnabled: c.delChargeEnabled,
+          delChargeAmt: c.delChargeAmt,
+          createdAt: c.createdAt,
+        );
+        customers[idx] = updated;
+      }
+    }
+  }
+
+  void switchCustomerPaper({
+    required int customerId,
+    required String effectiveDate,
+    int? oldPaperId,
+    int? newPaperId,
+    List<String>? newDays,
+  }) {
+    final idx = customers.indexWhere((c) => c.id == customerId);
+    if (idx == -1) return;
+    final cust = customers[idx];
+
+    DateTime eff;
+    try {
+      eff = DateTime.parse(effectiveDate);
+    } catch (_) {
+      eff = DateTime.now();
+    }
+    final prevDay = eff.subtract(const Duration(days: 1));
+    final prevDayStr = '${prevDay.year.toString().padLeft(4, '0')}-${prevDay.month.toString().padLeft(2, '0')}-${prevDay.day.toString().padLeft(2, '0')}';
+
+    final Map<String, dynamic> updatedSubs = {};
+
+    if (cust.subscriptions is Map) {
+      (cust.subscriptions as Map).forEach((k, v) {
+        updatedSubs[k.toString()] = v;
+      });
+    } else if (cust.subscriptions is List) {
+      for (final itm in (cust.subscriptions as List)) {
+        updatedSubs[itm.toString()] = {
+          'days': ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'],
+        };
+      }
+    }
+
+    // 1. End old paper on prevDay
+    if (oldPaperId != null) {
+      final oldKey = oldPaperId.toString();
+      final existing = updatedSubs[oldKey];
+      List<String> existingDays = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+      String? oldStart;
+      if (existing is List) {
+        existingDays = existing.map((e) => e.toString()).toList();
+      } else if (existing is Map) {
+        if (existing['days'] is List) {
+          existingDays = (existing['days'] as List).map((e) => e.toString()).toList();
+        }
+        oldStart = existing['startDate']?.toString();
+      }
+
+      updatedSubs[oldKey] = {
+        'days': existingDays,
+        'startDate': oldStart,
+        'endDate': prevDayStr,
+      };
+    }
+
+    // 2. Start new paper on effectiveDate
+    if (newPaperId != null) {
+      final newKey = newPaperId.toString();
+      updatedSubs[newKey] = {
+        'days': newDays ?? ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'],
+        'startDate': effectiveDate,
+        'endDate': null,
+      };
+    }
+
+    final updated = Customer(
+      id: cust.id,
+      custNo: cust.custNo,
+      code: cust.code,
+      name: cust.name,
+      routeId: cust.routeId,
+      salesmanId: cust.salesmanId,
+      collectionManId: cust.collectionManId,
+      sequenceNo: cust.sequenceNo,
+      collectionSequence: cust.collectionSequence,
+      mobile: cust.mobile,
+      whatsapp: cust.whatsapp,
+      address: cust.address,
+      societyShort: cust.societyShort,
+      subscriptions: updatedSubs,
+      billingType: cust.billingType,
+      fixedMonthlyAmount: cust.fixedMonthlyAmount,
+      openingBalance: cust.openingBalance,
+      currentBalance: cust.currentBalance,
+      status: cust.status,
+      inactiveDate: cust.inactiveDate,
+      delChargeEnabled: cust.delChargeEnabled,
+      delChargeAmt: cust.delChargeAmt,
+      createdAt: cust.createdAt,
+    );
+
+    customers[idx] = updated;
+  }
+
+  // 6. Import JSON Backup
   void importFromJsonString(String jsonContent) {
     try {
       final data = jsonDecode(jsonContent);
@@ -829,6 +1170,12 @@ class DatabaseService {
             if (e is Map) expenses.add(Expense.fromJson(Map<String, dynamic>.from(e)));
           }
         }
+        if (data['pressReturns'] is List) {
+          pressReturns.clear();
+          for (final r in data['pressReturns']) {
+            if (r is Map) pressReturns.add(PressReturnEntry.fromJson(Map<String, dynamic>.from(r)));
+          }
+        }
       }
     } catch (e) {
       // Handle error gracefully
@@ -848,7 +1195,149 @@ class DatabaseService {
       'bills': bills.map((b) => b.toJson()).toList(),
       'payments': payments.map((p) => p.toJson()).toList(),
       'expenses': expenses.map((e) => e.toJson()).toList(),
+      'pressReturns': pressReturns.map((r) => r.toJson()).toList(),
     };
     return const JsonEncoder.withIndent('  ').convert(data);
+  }
+
+  // 7. Monthly Press Supply & Return Reconciliation
+  PressReconciliationReport getPressReconciliation(String monthYear) {
+    final parts = monthYear.split('-');
+    final year = int.tryParse(parts[0]) ?? DateTime.now().year;
+    final month = int.tryParse(parts[1]) ?? DateTime.now().month;
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+
+    final Map<int, int> suppliedCopiesMap = {};
+    final Map<int, double> grossPurchaseMap = {};
+    final Map<int, double> totalRateSumMap = {};
+    final Map<int, int> rateDaysCountMap = {};
+
+    for (int day = 1; day <= daysInMonth; day++) {
+      final dateStr = '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+      final sheet = getDepotPurchaseSheet(dateStr);
+      for (final itemDemand in sheet.items) {
+        if (itemDemand.isHoliday) continue;
+        suppliedCopiesMap[itemDemand.id] = (suppliedCopiesMap[itemDemand.id] ?? 0) + itemDemand.totalCopies;
+        grossPurchaseMap[itemDemand.id] = (grossPurchaseMap[itemDemand.id] ?? 0.0) + itemDemand.purchaseAmount;
+        totalRateSumMap[itemDemand.id] = (totalRateSumMap[itemDemand.id] ?? 0.0) + itemDemand.purchaseRate;
+        rateDaysCountMap[itemDemand.id] = (rateDaysCountMap[itemDemand.id] ?? 0) + 1;
+      }
+    }
+
+    final monthReturns = pressReturns.where((r) => r.date.startsWith(monthYear)).toList();
+    final Map<int, int> returnedCopiesMap = {};
+    final Map<int, double> returnCreditsMap = {};
+
+    for (final ret in monthReturns) {
+      returnedCopiesMap[ret.itemId] = (returnedCopiesMap[ret.itemId] ?? 0) + ret.copies;
+      returnCreditsMap[ret.itemId] = (returnCreditsMap[ret.itemId] ?? 0.0) + ret.creditAmount;
+    }
+
+    final itemsSummary = <PressItemReconciliation>[];
+    int totalSupplied = 0;
+    double totalGross = 0.0;
+    int totalReturned = 0;
+    double totalReturnCredits = 0.0;
+
+    for (final item in items) {
+      final supplied = suppliedCopiesMap[item.id] ?? 0;
+      final gross = grossPurchaseMap[item.id] ?? 0.0;
+      final daysCount = rateDaysCountMap[item.id] ?? 1;
+      final avgRate = daysCount > 0 ? ((totalRateSumMap[item.id] ?? item.defaultPurchaseRate) / daysCount) : item.defaultPurchaseRate;
+      final returned = returnedCopiesMap[item.id] ?? 0;
+      final credits = returnCreditsMap[item.id] ?? 0.0;
+      final netPayable = (gross - credits) < 0 ? 0.0 : (gross - credits);
+
+      if (supplied > 0 || returned > 0) {
+        itemsSummary.add(PressItemReconciliation(
+          itemId: item.id,
+          itemName: item.name,
+          itemCode: item.code,
+          suppliedCopies: supplied,
+          avgPurchaseRate: avgRate,
+          grossPurchase: gross,
+          returnedCopies: returned,
+          returnCredits: credits,
+          netPayable: netPayable,
+        ));
+
+        totalSupplied += supplied;
+        totalGross += gross;
+        totalReturned += returned;
+        totalReturnCredits += credits;
+      }
+    }
+
+    final netPayable = (totalGross - totalReturnCredits) < 0 ? 0.0 : (totalGross - totalReturnCredits);
+
+    return PressReconciliationReport(
+      monthYear: monthYear,
+      totalSuppliedCopies: totalSupplied,
+      totalGrossPurchase: totalGross,
+      totalReturnedCopies: totalReturned,
+      totalReturnCredits: totalReturnCredits,
+      netPayableToPress: netPayable,
+      itemsSummary: itemsSummary,
+    );
+  }
+
+  // 8. Daily Cashbook Summary
+  DailyCashbookSummary getDailyCashbookSummary(String dateStr, [double openingCash = 1500.0]) {
+    final todaysCashPayments = payments.where((p) => p.date == dateStr && p.paymentMode == 'cash').toList();
+    final todaysCashExpenses = expenses.where((e) => e.date == dateStr && (e.paymentMode == 'cash' || e.bankAccountId == null)).toList();
+    final todaysBankDeposits = bankTransactions.where((t) => t.date == dateStr && t.type == 'deposit').toList();
+
+    final cashCollection = todaysCashPayments.fold(0.0, (sum, p) => sum + p.amount);
+    final cashExpensesTotal = todaysCashExpenses.fold(0.0, (sum, e) => sum + e.amount);
+    final bankDepositsTotal = todaysBankDeposits.fold(0.0, (sum, t) => sum + t.amount);
+
+    final totalCashInflow = openingCash + cashCollection;
+    final totalCashOutflow = cashExpensesTotal + bankDepositsTotal;
+    final closingCashInHand = totalCashInflow - totalCashOutflow;
+
+    return DailyCashbookSummary(
+      dateStr: dateStr,
+      openingCash: openingCash,
+      cashCollection: cashCollection,
+      otherIncome: 0.0,
+      totalCashInflow: totalCashInflow,
+      cashExpenses: cashExpensesTotal,
+      bankDeposits: bankDepositsTotal,
+      totalCashOutflow: totalCashOutflow,
+      closingCashInHand: closingCashInHand,
+      todaysCashPayments: todaysCashPayments,
+      todaysCashExpenses: todaysCashExpenses,
+      todaysBankDeposits: todaysBankDeposits,
+    );
+  }
+
+  // 9. Monthly Profit & Loss Summary
+  MonthlyProfitLossSummary getMonthlyProfitLoss(String monthYear) {
+    final monthBills = bills.where((b) => b.monthYear == monthYear).toList();
+    final grossCustomerBilling = monthBills.fold(0.0, (sum, b) => sum + b.finalPayable);
+    final totalDeliveryCharges = monthBills.fold(0.0, (sum, b) => sum + b.deliveryCharge);
+
+    final pressReport = getPressReconciliation(monthYear);
+    final totalPressPurchaseCost = pressReport.totalGrossPurchase;
+    final totalReturnCredits = pressReport.totalReturnCredits;
+    final netPressPurchaseCost = pressReport.netPayableToPress;
+
+    final monthExpenses = expenses.where((e) => e.date.startsWith(monthYear)).toList();
+    final totalOperatingExpenses = monthExpenses.where((e) => e.category != 'salary').fold(0.0, (sum, e) => sum + e.amount);
+    final totalSalesmanCommission = monthExpenses.where((e) => e.category == 'salary').fold(0.0, (sum, e) => sum + e.amount);
+
+    final netEstimatedProfit = grossCustomerBilling - netPressPurchaseCost - totalSalesmanCommission - totalOperatingExpenses;
+
+    return MonthlyProfitLossSummary(
+      monthYear: monthYear,
+      grossCustomerBilling: grossCustomerBilling,
+      totalDeliveryCharges: totalDeliveryCharges,
+      totalPressPurchaseCost: totalPressPurchaseCost,
+      totalReturnCredits: totalReturnCredits,
+      netPressPurchaseCost: netPressPurchaseCost,
+      totalSalesmanCommission: totalSalesmanCommission,
+      totalOperatingExpenses: totalOperatingExpenses,
+      netEstimatedProfit: netEstimatedProfit,
+    );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/database/database_service.dart';
 import '../../core/localization/app_localizations.dart';
@@ -7,6 +8,7 @@ import '../../core/models/customer.dart';
 import '../../core/models/item.dart';
 import '../../core/models/route.dart';
 import '../../core/models/salesman.dart';
+import '../routes/route_order_dialog.dart';
 
 class CustomersView extends StatefulWidget {
   const CustomersView({super.key});
@@ -19,6 +21,8 @@ class _CustomersViewState extends State<CustomersView> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
   int? _selectedRouteFilter;
+  int? _selectedSalesmanFilter;
+  int? _selectedCollectionManFilter;
   String _statusFilter = 'all'; // 'all', 'active', 'inactive'
 
   @override
@@ -33,6 +37,11 @@ class _CustomersViewState extends State<CustomersView> {
       if (_statusFilter == 'active' && !c.isActive) return false;
       if (_statusFilter == 'inactive' && c.isActive) return false;
       if (_selectedRouteFilter != null && c.routeId != _selectedRouteFilter) return false;
+      
+      final route = db.routes.cast<DeliveryRoute?>().firstWhere((r) => r?.id == c.routeId, orElse: () => null);
+      if (_selectedSalesmanFilter != null && route?.salesmanId != _selectedSalesmanFilter) return false;
+      if (_selectedCollectionManFilter != null && route?.collectionManId != _selectedCollectionManFilter) return false;
+
       if (_searchQuery.trim().isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         final matchName = c.name.toLowerCase().contains(q);
@@ -44,6 +53,26 @@ class _CustomersViewState extends State<CustomersView> {
       return true;
     }).toList()
       ..sort((a, b) => (int.tryParse(a.sequenceNo) ?? 0).compareTo(int.tryParse(b.sequenceNo) ?? 0));
+  }
+
+  void _openRouteOrderDialog([int? routeId]) {
+    showDialog(
+      context: context,
+      builder: (ctx) => RouteOrderDialog(
+        initialRouteId: routeId,
+        onSaved: () => setState(() {}),
+      ),
+    );
+  }
+
+  void _openSwitchPaperDialog(Customer customer) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _SwitchPaperDialog(
+        customer: customer,
+        onSaved: () => setState(() {}),
+      ),
+    );
   }
 
   void _openCustomerDialog([Customer? customer]) {
@@ -96,7 +125,7 @@ class _CustomersViewState extends State<CustomersView> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Filter Bar
+            // Filter Bar Row 1: Search & Dropdowns
             Row(
               children: [
                 Expanded(
@@ -111,7 +140,8 @@ class _CustomersViewState extends State<CustomersView> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
+                // Route Filter
                 Expanded(
                   flex: 2,
                   child: DropdownButtonFormField<int?>(
@@ -125,7 +155,37 @@ class _CustomersViewState extends State<CustomersView> {
                     onChanged: (v) => setState(() => _selectedRouteFilter = v),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
+                // Salesman / Delivery Filter
+                Expanded(
+                  flex: 2,
+                  child: DropdownButtonFormField<int?>(
+                    value: _selectedSalesmanFilter,
+                    dropdownColor: AppColors.bgCardDark,
+                    decoration: const InputDecoration(isDense: true, labelText: '🚴 વિતરક ફિલ્ટર'),
+                    items: [
+                      const DropdownMenuItem<int?>(value: null, child: Text('બધા વિતરક')),
+                      ...db.salesmen.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.name))),
+                    ],
+                    onChanged: (v) => setState(() => _selectedSalesmanFilter = v),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Collection Man Filter
+                Expanded(
+                  flex: 2,
+                  child: DropdownButtonFormField<int?>(
+                    value: _selectedCollectionManFilter,
+                    dropdownColor: AppColors.bgCardDark,
+                    decoration: const InputDecoration(isDense: true, labelText: '💼 ઉઘરાણીદાર'),
+                    items: [
+                      const DropdownMenuItem<int?>(value: null, child: Text('બધા ઉઘરાણીદાર')),
+                      ...db.collectionMen.map((cm) => DropdownMenuItem<int?>(value: cm.id, child: Text(cm.name))),
+                    ],
+                    onChanged: (v) => setState(() => _selectedCollectionManFilter = v),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 // Status Filter Dropdown
                 Expanded(
                   flex: 2,
@@ -135,16 +195,30 @@ class _CustomersViewState extends State<CustomersView> {
                     decoration: const InputDecoration(isDense: true, labelText: 'સ્થિતિ (Status)'),
                     items: [
                       DropdownMenuItem(value: 'all', child: Text('બધા ($activeCount સક્રિય / $inactiveCount બંધ)')),
-                      const DropdownMenuItem(value: 'active', child: Text('🟢 ફક્ત સક્રિય (Active)')),
-                      const DropdownMenuItem(value: 'inactive', child: Text('🔴 ફક્ત બંધ (Inactive)')),
+                      const DropdownMenuItem(value: 'active', child: Text('🟢 ફક્ત સક્રિય')),
+                      const DropdownMenuItem(value: 'inactive', child: Text('🔴 ફક્ત બંધ')),
                     ],
                     onChanged: (v) => setState(() => _statusFilter = v ?? 'all'),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.accentCyan),
+                    foregroundColor: AppColors.accentCyan,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  ),
+                  onPressed: () => _openRouteOrderDialog(_selectedRouteFilter),
+                  icon: const Icon(Icons.swap_vert, size: 16),
+                  label: const Text('🔀 ક્રમ'),
+                ),
+                const SizedBox(width: 6),
                 ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
                   onPressed: () => _openCustomerDialog(),
-                  icon: const Icon(Icons.person_add, size: 18),
+                  icon: const Icon(Icons.person_add, size: 16),
                   label: const Text('નવો ગ્રાહક'),
                 ),
               ],
@@ -303,6 +377,11 @@ class _CustomersViewState extends State<CustomersView> {
                                       },
                                     ),
                                     IconButton(
+                                      icon: const Icon(Icons.swap_horiz, size: 20, color: AppColors.accentCyan),
+                                      onPressed: () => _openSwitchPaperDialog(c),
+                                      tooltip: '🔄 પેપર બદલો (Switch Paper)',
+                                    ),
+                                    IconButton(
                                       icon: const Icon(Icons.edit, size: 18, color: AppColors.primaryLight),
                                       onPressed: () => _openCustomerDialog(c),
                                       tooltip: 'સુધારો',
@@ -353,6 +432,8 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
   late TextEditingController _balanceCtrl;
 
   late int _routeId;
+  int? _insertAfterSeq;
+  String _insertAfterHelpText = '';
   String _billingType = 'daily';
   bool _delChargeEnabled = false;
   bool _printEnabled = true;
@@ -377,9 +458,14 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
     final c = widget.customer;
     final db = DatabaseService.instance;
 
+    _routeId = c?.routeId ?? (db.routes.isNotEmpty ? db.routes.first.id : 1);
+    final routeCusts = db.customers.where((item) => item.routeId == _routeId && item.id != c?.id).toList();
+    final maxSeq = routeCusts.fold<int>(0, (max, item) => (int.tryParse(item.sequenceNo) ?? 0) > max ? (int.tryParse(item.sequenceNo) ?? 0) : max);
+    final defaultSeq = c?.sequenceNo ?? '${maxSeq + 1}';
+
     _nameCtrl = TextEditingController(text: c?.name ?? '');
     _codeCtrl = TextEditingController(text: c?.code.isNotEmpty == true ? c!.code : (c?.custNo ?? '${db.customers.length + 101}'));
-    _seqCtrl = TextEditingController(text: c?.sequenceNo ?? '${db.customers.length + 1}');
+    _seqCtrl = TextEditingController(text: defaultSeq);
     _mobileCtrl = TextEditingController(text: c?.mobile ?? '');
     _whatsappCtrl = TextEditingController(text: c?.whatsapp.isNotEmpty == true ? c!.whatsapp : (c?.mobile ?? ''));
     _addressCtrl = TextEditingController(text: c?.address ?? '');
@@ -388,10 +474,13 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
     _fixedAmtCtrl = TextEditingController(text: c?.fixedMonthlyAmount.toString() ?? '0');
     _balanceCtrl = TextEditingController(text: c?.currentBalance.toString() ?? '0');
 
-    _routeId = c?.routeId ?? (db.routes.isNotEmpty ? db.routes.first.id : 1);
     _billingType = c?.billingType ?? 'daily';
     _delChargeEnabled = c?.delChargeEnabled ?? false;
     _isActive = c?.isActive ?? true;
+
+    if (c == null) {
+      _insertAfterHelpText = 'લાઇનનો છેલ્લો ક્રમ $defaultSeq અપાશે';
+    }
 
     // Initialize paper subscriptions
     if (c != null && c.subscriptions != null) {
@@ -420,6 +509,21 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
     } else if (c == null && db.items.isNotEmpty) {
       _paperSubscriptions[db.items.first.id] = {'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'};
     }
+  }
+
+  void _onRouteChange(int newRouteId) {
+    setState(() {
+      _routeId = newRouteId;
+      _insertAfterSeq = null;
+      if (widget.customer == null) {
+        final db = DatabaseService.instance;
+        final routeCusts = db.customers.where((item) => item.routeId == _routeId).toList();
+        final maxSeq = routeCusts.fold<int>(0, (max, item) => (int.tryParse(item.sequenceNo) ?? 0) > max ? (int.tryParse(item.sequenceNo) ?? 0) : max);
+        final nextSeq = maxSeq + 1;
+        _seqCtrl.text = '$nextSeq';
+        _insertAfterHelpText = 'લાઇનનો છેલ્લો ક્રમ $nextSeq અપાશે';
+      }
+    });
   }
 
   @override
@@ -470,7 +574,8 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
     );
 
     if (widget.customer == null) {
-      db.customers.add(newCust);
+      final targetSeq = int.tryParse(_seqCtrl.text);
+      db.insertCustomerAtSequence(newCust, targetSeq, _routeId, syncCollectionSeq: true);
     } else {
       final idx = db.customers.indexWhere((c) => c.id == widget.customer!.id);
       if (idx != -1) db.customers[idx] = newCust;
@@ -488,6 +593,11 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
     final selectedRoute = db.routes.cast<DeliveryRoute?>().firstWhere((r) => r?.id == _routeId, orElse: () => null);
     final autoSalesman = db.salesmen.cast<Salesman?>().firstWhere((s) => s?.id == selectedRoute?.salesmanId, orElse: () => null);
     final autoCollectionMan = db.collectionMen.cast<CollectionMan?>().firstWhere((cm) => cm?.id == selectedRoute?.collectionManId, orElse: () => null);
+
+    final routeCustomers = db.customers
+        .where((c) => c.routeId == _routeId && c.id != widget.customer?.id)
+        .toList()
+      ..sort((a, b) => (int.tryParse(a.sequenceNo) ?? 0).compareTo(int.tryParse(b.sequenceNo) ?? 0));
 
     return Dialog(
       backgroundColor: const Color(0xFF1E2433),
@@ -525,6 +635,28 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
                         widget.customer == null ? '➕ નવો ગ્રાહક ઉમેરો' : '✏️ ગ્રાહકની વિગત બદલો',
                         style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
+                      if (widget.customer != null) ...[
+                        const SizedBox(width: 12),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.accentCyan),
+                            foregroundColor: AppColors.accentCyan,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => _SwitchPaperDialog(
+                                customer: widget.customer!,
+                                onSaved: widget.onSaved,
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.swap_horiz, size: 16),
+                          label: const Text('🔄 પેપર બદલો', style: TextStyle(fontSize: 12)),
+                        ),
+                      ],
                     ],
                   ),
                   Row(
@@ -568,7 +700,9 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
                                 labelStyle: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentCyan),
                               ),
                               items: db.routes.map((r) => DropdownMenuItem(value: r.id, child: Text('${r.name} (${r.code})'))).toList(),
-                              onChanged: (v) => setState(() => _routeId = v ?? _routeId),
+                              onChanged: (v) {
+                                if (v != null) _onRouteChange(v);
+                              },
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -581,6 +715,47 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Insert After Dropdown (New feature!)
+                      DropdownButtonFormField<int?>(
+                        value: _insertAfterSeq,
+                        dropdownColor: const Color(0xFF1E2433),
+                        decoration: InputDecoration(
+                          labelText: '📍 કોના પછી લાઇન ક્રમમાં ઉમેરવો? (Insert After)',
+                          labelStyle: const TextStyle(color: AppColors.accentCyan, fontSize: 13, fontWeight: FontWeight.w600),
+                          helperText: _insertAfterHelpText.isNotEmpty ? '💡 $_insertAfterHelpText' : null,
+                          helperStyle: const TextStyle(color: AppColors.primaryTeal, fontSize: 11),
+                        ),
+                        items: [
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('-- લાઇનના અંતે ઉમેરો (Add to End of Route) --'),
+                          ),
+                          ...routeCustomers.map((rc) => DropdownMenuItem<int?>(
+                                value: int.tryParse(rc.sequenceNo) ?? 0,
+                                child: Text(
+                                  '[ક્રમ ${rc.sequenceNo}] #${rc.custNo.isNotEmpty ? rc.custNo : rc.code} ${rc.societyShort.isNotEmpty ? "[" + rc.societyShort + "] " : ""}${rc.name}${rc.address.isNotEmpty ? " - " + rc.address : ""}',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              )),
+                        ],
+                        onChanged: (v) {
+                          setState(() {
+                            _insertAfterSeq = v;
+                            if (v != null && v > 0) {
+                              final nextSeq = v + 1;
+                              _seqCtrl.text = '$nextSeq';
+                              _insertAfterHelpText = 'નવો ગ્રાહક ક્રમ $nextSeq પર મુકાશે (પાછળના બધા ગ્રાહકો આપોઆપ +1 ખસી જશે)';
+                            } else {
+                              final maxSeq = routeCustomers.fold<int>(0, (max, item) => (int.tryParse(item.sequenceNo) ?? 0) > max ? (int.tryParse(item.sequenceNo) ?? 0) : max);
+                              final nextSeq = maxSeq + 1;
+                              _seqCtrl.text = '$nextSeq';
+                              _insertAfterHelpText = 'લાઇનનો છેલ્લો ક્રમ $nextSeq અપાશે';
+                            }
+                          });
+                        },
                       ),
                       const SizedBox(height: 10),
 
@@ -1041,3 +1216,304 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
     );
   }
 }
+
+class _SwitchPaperDialog extends StatefulWidget {
+  final Customer customer;
+  final VoidCallback onSaved;
+
+  const _SwitchPaperDialog({required this.customer, required this.onSaved});
+
+  @override
+  State<_SwitchPaperDialog> createState() => _SwitchPaperDialogState();
+}
+
+class _SwitchPaperDialogState extends State<_SwitchPaperDialog> {
+  DateTime _effectiveDate = DateTime.now();
+  int? _oldPaperId;
+  int? _newPaperId;
+  final Set<String> _selectedNewDays = {'sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'};
+
+  final List<Map<String, String>> _allDays = const [
+    {'code': 'mon', 'label': 'સોમ'},
+    {'code': 'tue', 'label': 'મંગળ'},
+    {'code': 'wed', 'label': 'બુધ'},
+    {'code': 'thu', 'label': 'ગુરુ'},
+    {'code': 'fri', 'label': 'શુક્ર'},
+    {'code': 'sat', 'label': 'શનિ'},
+    {'code': 'sun', 'label': 'રવિ'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final subIds = widget.customer.subscriptionItemIds;
+    if (subIds.isNotEmpty) {
+      _oldPaperId = subIds.first;
+    }
+  }
+
+  void _save() {
+    if (_oldPaperId == null && _newPaperId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('કૃપા કરીને જૂનું અથવા નવું પેપર પસંદ કરો.')),
+      );
+      return;
+    }
+
+    final db = DatabaseService.instance;
+    final effStr = DateFormat('yyyy-MM-dd').format(_effectiveDate);
+
+    db.switchCustomerPaper(
+      customerId: widget.customer.id,
+      effectiveDate: effStr,
+      oldPaperId: _oldPaperId,
+      newPaperId: _newPaperId,
+      newDays: _selectedNewDays.toList(),
+    );
+
+    widget.onSaved();
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('સફળતાપૂર્વક પેપર બદલાઈ ગયું! ✅'),
+        backgroundColor: AppColors.success,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final db = DatabaseService.instance;
+    final subIds = widget.customer.subscriptionItemIds;
+    final activePapers = db.items.where((i) => i.isActive).toList();
+
+    final prevDay = _effectiveDate.subtract(const Duration(days: 1));
+    final prevDayStr = DateFormat('dd/MM/yyyy').format(prevDay);
+    final effStr = DateFormat('dd/MM/yyyy').format(_effectiveDate);
+
+    final oldItem = db.items.cast<Item?>().firstWhere((i) => i?.id == _oldPaperId, orElse: () => null);
+    final newItem = db.items.cast<Item?>().firstWhere((i) => i?.id == _newPaperId, orElse: () => null);
+
+    return Dialog(
+      backgroundColor: const Color(0xFF161B26),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      child: Container(
+        width: 650,
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentCyan.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.swap_horiz, color: AppColors.accentCyan, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '🔄 પેપર બદલો વિઝાર્ડ (Switch Paper)',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                        ),
+                        Text(
+                          '${widget.customer.name} (ક્રમ: #${widget.customer.sequenceNo})',
+                          style: const TextStyle(fontSize: 12, color: AppColors.accentCyan),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: AppColors.textSecondaryDark),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const Divider(color: Color(0xFF2A3447), height: 20),
+
+            // Effective Date Picker
+            InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _effectiveDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2030),
+                );
+                if (picked != null) setState(() => _effectiveDate = picked);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E2433),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF2A3447)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.calendar_today, size: 16, color: AppColors.accentCyan),
+                        SizedBox(width: 8),
+                        Text(
+                          'અસરકારક તારીખ (નવું પેપર કઈ તારીખથી શરૂ કરવું?):',
+                          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentCyan.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        DateFormat('dd/MM/yyyy').format(_effectiveDate),
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentCyan, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Old Paper Dropdown
+            DropdownButtonFormField<int?>(
+              value: _oldPaperId,
+              dropdownColor: const Color(0xFF1E2433),
+              decoration: const InputDecoration(
+                labelText: '🔴 જૂનું પેપર (જે બંધ કરવું હોય)',
+                labelStyle: TextStyle(color: AppColors.dangerLight, fontWeight: FontWeight.bold),
+              ),
+              items: [
+                const DropdownMenuItem<int?>(
+                  value: null,
+                  child: Text('➕ (કોઈ પેપર બંધ નથી કરવું - માત્ર નવું ઉમેરવું છે)'),
+                ),
+                ...subIds.map((id) {
+                  final it = db.items.cast<Item?>().firstWhere((i) => i?.id == id, orElse: () => null);
+                  return DropdownMenuItem<int?>(
+                    value: id,
+                    child: Text('🔴 ${it?.name ?? "ID: $id"} (${it?.code ?? ""})'),
+                  );
+                }),
+              ],
+              onChanged: (v) => setState(() => _oldPaperId = v),
+            ),
+            const SizedBox(height: 12),
+
+            // New Paper Dropdown
+            DropdownButtonFormField<int?>(
+              value: _newPaperId,
+              dropdownColor: const Color(0xFF1E2433),
+              decoration: const InputDecoration(
+                labelText: '🟢 નવું પેપર (જે શરૂ કરવું હોય)',
+                labelStyle: TextStyle(color: AppColors.successLight, fontWeight: FontWeight.bold),
+              ),
+              items: [
+                const DropdownMenuItem<int?>(
+                  value: null,
+                  child: Text('🛑 (કોઈ નવું પેપર નથી લેવું - માત્ર જૂનું બંધ કરવું છે)'),
+                ),
+                ...activePapers.map((it) => DropdownMenuItem<int?>(
+                  value: it.id,
+                  child: Text('🟢 ${it.name} (${it.code}) - ₹${it.saleRate.toStringAsFixed(0)}'),
+                )),
+              ],
+              onChanged: (v) => setState(() => _newPaperId = v),
+            ),
+            const SizedBox(height: 12),
+
+            // Day checkboxes for New Paper
+            if (_newPaperId != null) ...[
+              const Text('નવા પેપરના વાર પસંદ કરો:', style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _allDays.map((d) {
+                  final isSelected = _selectedNewDays.contains(d['code']);
+                  return FilterChip(
+                    label: Text(d['label']!),
+                    selected: isSelected,
+                    selectedColor: AppColors.accentCyan.withOpacity(0.2),
+                    checkmarkColor: AppColors.accentCyan,
+                    labelStyle: TextStyle(color: isSelected ? AppColors.accentCyan : AppColors.textSecondaryDark, fontSize: 11, fontWeight: FontWeight.bold),
+                    onSelected: (val) {
+                      setState(() {
+                        if (val) {
+                          _selectedNewDays.add(d['code']!);
+                        } else {
+                          _selectedNewDays.remove(d['code']!);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Live Preview Summary Box
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A2232),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF2A3447)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('💡 આપમેળે થનાર ફેરફાર (Live Summary):', style: TextStyle(color: AppColors.accentCyan, fontWeight: FontWeight.bold, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  if (oldItem != null)
+                    Text('• 🔴 ${oldItem.name} તારીખ $prevDayStr સુધી જ વિતરણ થશે અને બિલમાં ગણાશે.', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                  if (newItem != null)
+                    Text('• 🟢 ${newItem.name} તારીખ $effStr થી શરૂ થશે.', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                  if (oldItem == null && newItem == null)
+                    const Text('કૃપા કરીને જૂનું અથવા નવું પેપર પસંદ કરો.', style: TextStyle(color: AppColors.textMutedDark, fontSize: 11)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Actions
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('રદ કરો', style: TextStyle(color: Colors.white70)),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentCyan, foregroundColor: Colors.black),
+                  onPressed: (_oldPaperId == null && _newPaperId == null) ? null : _save,
+                  icon: const Icon(Icons.check, size: 18),
+                  label: const Text('પેપર બદલો સાચવો', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
