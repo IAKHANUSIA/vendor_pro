@@ -5,9 +5,12 @@ import '../../core/constants/app_colors.dart';
 import '../../core/database/database_service.dart';
 import '../../core/models/bill.dart';
 import '../../core/models/customer.dart';
+import '../../core/models/route.dart';
+import '../../core/models/salesman.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/printing/print_service.dart';
 import 'whatsapp_express_dialog.dart';
+import 'bill_image_modal.dart';
 import '../payments/dynamic_upi_dialog.dart';
 
 class BillingView extends ConsumerStatefulWidget {
@@ -495,7 +498,7 @@ class _BillingViewState extends ConsumerState<BillingView> {
             child: Text(statusText, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusColor)),
           ),
           const SizedBox(width: 16),
-          // Actions: Preview, WhatsApp, UPI QR, Payment
+          // Actions: Preview, Bill Image Card, WhatsApp, UPI QR, Payment
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -505,12 +508,22 @@ class _BillingViewState extends ConsumerState<BillingView> {
                 onPressed: () => _showBillPreviewModal(context, bill, firm),
               ),
               IconButton(
+                icon: const Icon(Icons.image, size: 18, color: AppColors.accentCyan),
+                tooltip: 'બિલ ઈમેજ કાર્ડ / ડાઉનલોડ (Image Card)',
+                onPressed: () {
+                  final cust = ref.read(customersProvider).cast<Customer?>().firstWhere((c) => c?.id == bill.customerId, orElse: () => null);
+                  final route = ref.read(routesProvider).cast<DeliveryRoute?>().firstWhere((r) => r?.id == bill.routeId, orElse: () => null);
+                  final salesman = route != null ? ref.read(salesmenProvider).cast<Salesman?>().firstWhere((s) => s?.id == route.salesmanId, orElse: () => null) : null;
+                  BillImageModal.show(context, bill: bill, firm: firm, customer: cust, route: route, salesman: salesman);
+                },
+              ),
+              IconButton(
                 icon: const Icon(Icons.chat, size: 18, color: AppColors.successGreen),
-                tooltip: 'WhatsApp બિલ મોકલો',
+                tooltip: 'WhatsApp બિલ / ઈમેજ મોકલો',
                 onPressed: () => _sendWhatsAppBill(context, bill, firm),
               ),
               IconButton(
-                icon: const Icon(Icons.qr_code, size: 18, color: AppColors.accentCyan),
+                icon: const Icon(Icons.qr_code, size: 18, color: AppColors.accentGold),
                 tooltip: 'લાઇવ UPI QR સ્કેન',
                 onPressed: () {
                   final cust = ref.read(customersProvider).cast<Customer?>().firstWhere((c) => c?.id == bill.customerId, orElse: () => null);
@@ -518,7 +531,7 @@ class _BillingViewState extends ConsumerState<BillingView> {
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.payments, size: 18, color: AppColors.accentGold),
+                icon: const Icon(Icons.payments, size: 18, color: AppColors.successGreen),
                 tooltip: 'ચૂકવણી જમા કરો (Receive Payment)',
                 onPressed: () => _showReceivePaymentModal(context, bill),
               ),
@@ -757,10 +770,13 @@ class _BillingViewState extends ConsumerState<BillingView> {
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(ctx);
-              _sendWhatsAppBill(context, bill, firm);
+              final cust = ref.read(customersProvider).cast<Customer?>().firstWhere((c) => c?.id == bill.customerId, orElse: () => null);
+              final route = ref.read(routesProvider).cast<DeliveryRoute?>().firstWhere((r) => r?.id == bill.routeId, orElse: () => null);
+              final salesman = route != null ? ref.read(salesmenProvider).cast<Salesman?>().firstWhere((s) => s?.id == route.salesmanId, orElse: () => null) : null;
+              BillImageModal.show(context, bill: bill, firm: firm, customer: cust, route: route, salesman: salesman);
             },
-            icon: const Icon(Icons.chat, size: 16),
-            label: const Text('WhatsApp'),
+            icon: const Icon(Icons.image, size: 16),
+            label: const Text('બિલ ઈમેજ / WhatsApp'),
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.successGreen),
           ),
           ElevatedButton.icon(
@@ -790,24 +806,12 @@ class _BillingViewState extends ConsumerState<BillingView> {
     );
   }
 
-  // 3. WhatsApp Bill Sender
-  void _sendWhatsAppBill(BuildContext context, Bill bill, dynamic firm) async {
+  // 3. WhatsApp Bill Sender / Digital Image Modal
+  void _sendWhatsAppBill(BuildContext context, Bill bill, dynamic firm) {
     final cust = ref.read(customersProvider).cast<Customer?>().firstWhere((c) => c?.id == bill.customerId, orElse: () => null);
-    if (cust == null || cust.phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('આ ગ્રાહકનો મોબાઈલ નંબર ઉપલબ્ધ નથી.')));
-      return;
-    }
-
-    final messageText = bill.generateWhatsAppText(firmName: firm.name, upiId: firm.upiId);
-    final phoneClean = cust.phone.replaceAll(RegExp(r'[^0-9]'), '');
-    final fullPhone = phoneClean.length == 10 ? '91$phoneClean' : phoneClean;
-    final url = Uri.parse('https://wa.me/$fullPhone?text=${Uri.encodeComponent(messageText)}');
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('WhatsApp ખોલી શકાયું નથી.')));
-    }
+    final route = ref.read(routesProvider).cast<DeliveryRoute?>().firstWhere((r) => r?.id == bill.routeId, orElse: () => null);
+    final salesman = route != null ? ref.read(salesmenProvider).cast<Salesman?>().firstWhere((s) => s?.id == route.salesmanId, orElse: () => null) : null;
+    BillImageModal.show(context, bill: bill, firm: firm, customer: cust, route: route, salesman: salesman);
   }
 
   // 4. Quick Payment Modal

@@ -7,6 +7,8 @@ import '../../core/models/customer.dart';
 import '../../core/models/firm.dart';
 import '../../core/printing/print_service.dart';
 
+import 'payment_receipt_image_modal.dart';
+
 class PaymentReceiptDialog extends StatelessWidget {
   final Payment payment;
   final Customer customer;
@@ -24,13 +26,11 @@ class PaymentReceiptDialog extends StatelessWidget {
     required Customer customer,
     required Firm firm,
   }) {
-    showDialog(
-      context: context,
-      builder: (ctx) => PaymentReceiptDialog(
-        payment: payment,
-        customer: customer,
-        firm: firm,
-      ),
+    PaymentReceiptImageModal.show(
+      context,
+      payment: payment,
+      customer: customer,
+      firm: firm,
     );
   }
 
