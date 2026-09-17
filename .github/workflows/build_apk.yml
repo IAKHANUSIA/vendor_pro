@@ -33,8 +33,10 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: 🔑 Grant execute permission for gradlew
-        run: chmod +x android/gradlew
+      - name: 🔑 Fix gradlew line endings and permissions
+        run: |
+          sed -i 's/\r$//' android/gradlew || true
+          chmod +x android/gradlew
 
       - name: 📦 Install Flutter Dependencies
         run: flutter pub get
@@ -56,8 +58,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
         with:
-          tag_name: v1.0.2
-          name: "Vendor Pro v1.0.2 (Android APK)"
+          tag_name: v1.0.3
+          name: "Vendor Pro v1.0.3 (Android APK)"
           make_latest: true
           body: |
             ## 📰 Vendor Pro - ન્યૂઝપેપર વિતરણ અને બિલિંગ મેનેજમેન્ટ સિસ્ટમ (Latest Release)
