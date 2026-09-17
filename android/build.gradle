@@ -1,25 +1,31 @@
 allprojects {
-        repositories {
-                    google()
-                    mavenCentral()
+    repositories {
+        google()
+        mavenCentral()
+    }
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.core:core:1.13.1'
+            force 'androidx.core:core-ktx:1.13.1'
+            force 'androidx.browser:browser:1.8.0'
+            force 'androidx.annotation:annotation:1.8.0'
+            force 'androidx.activity:activity:1.8.2'
+            force 'androidx.fragment:fragment:1.6.2'
         }
-        configurations.all {
-                    resolutionStrategy {
-                                    force 'androidx.core:core:1.13.1'
-                                    force 'androidx.core:core-ktx:1.13.1'
-                                    force 'androidx.browser:browser:1.8.0'
-                    }
-        }
+    }
 }
 
 subprojects {
-        project.configurations.all {
-                    resolutionStrategy {
-                                    force 'androidx.core:core:1.13.1'
-                                    force 'androidx.core:core-ktx:1.13.1'
-                                    force 'androidx.browser:browser:1.8.0'
-                    }
+    project.configurations.all {
+        resolutionStrategy {
+            force 'androidx.core:core:1.13.1'
+            force 'androidx.core:core-ktx:1.13.1'
+            force 'androidx.browser:browser:1.8.0'
+            force 'androidx.annotation:annotation:1.8.0'
+            force 'androidx.activity:activity:1.8.2'
+            force 'androidx.fragment:fragment:1.6.2'
         }
+    }
 }
 
 rootProject.buildDir = '../build'
