@@ -702,6 +702,8 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
 
   final Map<int, Set<String>> _paperSubscriptions = {};
 
+  final ScrollController _papersScrollCtrl = ScrollController();
+
   final List<Map<String, String>> _allDays = const [
     {'code': 'mon', 'label': 'સોમ'},
     {'code': 'tue', 'label': 'મંગળ'},
@@ -784,6 +786,7 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
 
   @override
   void dispose() {
+    _papersScrollCtrl.dispose();
     _nameCtrl.dispose();
     _codeCtrl.dispose();
     _seqCtrl.dispose();
@@ -1352,145 +1355,48 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
                         'ચાલુ પેપર્સ (સબસ્ક્રિપ્શન)',
                         style: TextStyle(color: Color(0xFF42A5F5), fontWeight: FontWeight.bold, fontSize: 14),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
 
-                      // 2-Column Grid of Papers matching Image 1
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: db.items.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          mainAxisExtent: 105,
+                      // Dedicated Scrollable Box with 2 Columns matching Image 1
+                      Container(
+                        height: 220,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF101724),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF2A364F)),
                         ),
-                        itemBuilder: (ctx, idx) {
-                          final item = db.items[idx];
-                          final isSubscribed = _paperSubscriptions.containsKey(item.id);
-                          final selectedDays = _paperSubscriptions[item.id] ?? {};
-
-                          return Container(
+                        child: Scrollbar(
+                          controller: _papersScrollCtrl,
+                          thumbVisibility: true,
+                          child: SingleChildScrollView(
+                            controller: _papersScrollCtrl,
                             padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF141A28),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: isSubscribed ? const Color(0xFF1E88E5).withOpacity(0.6) : const Color(0xFF2A364F),
-                              ),
-                            ),
-                            child: Column(
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Paper Title & Checkbox
-                                InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      if (isSubscribed) {
-                                        _paperSubscriptions.remove(item.id);
-                                      } else {
-                                        _paperSubscriptions[item.id] = {'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'};
-                                      }
-                                    });
-                                  },
-                                  child: Row(
+                                // Left Column (Even indices)
+                                Expanded(
+                                  child: Column(
                                     children: [
-                                      SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: Checkbox(
-                                          value: isSubscribed,
-                                          activeColor: const Color(0xFF1E88E5),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                          onChanged: (val) {
-                                            setState(() {
-                                              if (val == true) {
-                                                _paperSubscriptions[item.id] = {'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'};
-                                              } else {
-                                                _paperSubscriptions.remove(item.id);
-                                              }
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          item.name.toUpperCase(),
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                            color: isSubscribed ? const Color(0xFF64B5F6) : const Color(0xFF90A4AE),
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
+                                      for (int i = 0; i < db.items.length; i += 2)
+                                        _buildPaperSubscriptionTile(db.items[i]),
                                     ],
                                   ),
                                 ),
-
-                                if (isSubscribed) ...[
-                                  const Divider(color: Color(0xFF1E283C), height: 8),
-                                  // Days checkboxes wrap matching Image 1
-                                  Wrap(
-                                    spacing: 4,
-                                    runSpacing: 2,
-                                    children: _allDays.map((d) {
-                                      final dCode = d['code']!;
-                                      final dLabel = d['label']!;
-                                      final isDayActive = selectedDays.contains(dCode);
-
-                                      return InkWell(
-                                        onTap: () {
-                                          setState(() {
-                                            if (isDayActive) {
-                                              selectedDays.remove(dCode);
-                                            } else {
-                                              selectedDays.add(dCode);
-                                            }
-                                          });
-                                        },
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            SizedBox(
-                                              width: 14,
-                                              height: 14,
-                                              child: Checkbox(
-                                                value: isDayActive,
-                                                activeColor: const Color(0xFF1E88E5),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
-                                                onChanged: (val) {
-                                                  setState(() {
-                                                    if (val == true) {
-                                                      selectedDays.add(dCode);
-                                                    } else {
-                                                      selectedDays.remove(dCode);
-                                                    }
-                                                  });
-                                                },
-                                              ),
-                                            ),
-                                            const SizedBox(width: 2),
-                                            Text(
-                                              dLabel,
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                color: isDayActive ? Colors.white : const Color(0xFF78909C),
-                                                fontWeight: isDayActive ? FontWeight.bold : FontWeight.normal,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    }).toList(),
+                                const SizedBox(width: 8),
+                                // Right Column (Odd indices)
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      for (int i = 1; i < db.items.length; i += 2)
+                                        _buildPaperSubscriptionTile(db.items[i]),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ],
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -1498,7 +1404,7 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
               ),
               const SizedBox(height: 16),
 
-              // Footer Actions
+              // Footer Actions matching Image 1
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -1521,13 +1427,196 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     onPressed: _save,
-                    child: const Text('સાચવો (Save)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    child: const Text('ગ્રાહક સાચવો', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPaperSubscriptionTile(Item item) {
+    final isSubscribed = _paperSubscriptions.containsKey(item.id);
+    final selectedDays = _paperSubscriptions[item.id] ?? {};
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: isSubscribed ? const Color(0xFF132238) : const Color(0xFF161E2E),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isSubscribed ? const Color(0xFF1E88E5) : const Color(0xFF263248),
+          width: isSubscribed ? 1.2 : 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Paper Title & Checkbox
+          InkWell(
+            onTap: () {
+              setState(() {
+                if (isSubscribed) {
+                  _paperSubscriptions.remove(item.id);
+                } else {
+                  _paperSubscriptions[item.id] = {'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'};
+                }
+              });
+            },
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: Checkbox(
+                    value: isSubscribed,
+                    activeColor: const Color(0xFF1E88E5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)),
+                    onChanged: (val) {
+                      setState(() {
+                        if (val == true) {
+                          _paperSubscriptions[item.id] = {'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'};
+                        } else {
+                          _paperSubscriptions.remove(item.id);
+                        }
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    item.name.toUpperCase(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: isSubscribed ? const Color(0xFF64B5F6) : const Color(0xFF90A4AE),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          if (isSubscribed) ...[
+            const SizedBox(height: 5),
+            // Row 1: Weekdays (Mon - Fri) matching Image 1
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: _allDays.take(5).map((d) {
+                final dCode = d['code']!;
+                final dLabel = d['label']!;
+                final isDayActive = selectedDays.contains(dCode);
+
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isDayActive) {
+                        selectedDays.remove(dCode);
+                      } else {
+                        selectedDays.add(dCode);
+                      }
+                    });
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: Checkbox(
+                          value: isDayActive,
+                          activeColor: const Color(0xFF1E88E5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                selectedDays.add(dCode);
+                              } else {
+                                selectedDays.remove(dCode);
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        dLabel,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDayActive ? Colors.white : const Color(0xFF78909C),
+                          fontWeight: isDayActive ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 4),
+            // Row 2: Weekend (Sat - Sun) matching Image 1
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: _allDays.skip(5).map((d) {
+                final dCode = d['code']!;
+                final dLabel = d['label']!;
+                final isDayActive = selectedDays.contains(dCode);
+
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isDayActive) {
+                        selectedDays.remove(dCode);
+                      } else {
+                        selectedDays.add(dCode);
+                      }
+                    });
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: Checkbox(
+                          value: isDayActive,
+                          activeColor: const Color(0xFF1E88E5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                selectedDays.add(dCode);
+                              } else {
+                                selectedDays.remove(dCode);
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        dLabel,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDayActive ? Colors.white : const Color(0xFF78909C),
+                          fontWeight: isDayActive ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
       ),
     );
   }
