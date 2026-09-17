@@ -601,6 +601,8 @@ class _BillingViewState extends ConsumerState<BillingView> {
                     DropdownMenuItem(value: 'delivery_salesman', child: Text('ડિલિવરી મેન + સેલ્સમેન ક્રમ')),
                     DropdownMenuItem(value: 'route_salesman', child: Text('લાઇન + સેલ્સમેન ક્રમ')),
                     DropdownMenuItem(value: 'route_delivery', child: Text('લાઇન + ડિલિવરી ક્રમ')),
+                    DropdownMenuItem(value: 'salesman_salesman', child: Text('સેલ્સમેન + સેલ્સમેન ક્રમ')),
+                    DropdownMenuItem(value: 'delivery_delivery', child: Text('ડિલિવરી મેન + ડિલિવરી ક્રમ')),
                   ],
                   onChanged: (v) => setDialogState(() => sortBy = v ?? 'salesman_delivery'),
                 ),

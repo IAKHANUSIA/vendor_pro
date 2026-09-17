@@ -641,6 +641,22 @@ class DatabaseService {
         final seqA = int.tryParse(a.sequenceNo) ?? 999999;
         final seqB = int.tryParse(b.sequenceNo) ?? 999999;
         return seqA.compareTo(seqB);
+      } else if (sortBy == 'salesman_salesman') {
+        // 5. સેલ્સમેન + સેલ્સમેન ક્રમ (Salesman/Collection Man + Salesman/Collection Sequence)
+        final smA = collectionManMap[rA?.collectionManId]?.name ?? salesmanMap[rA?.salesmanId]?.name ?? '';
+        final smB = collectionManMap[rB?.collectionManId]?.name ?? salesmanMap[rB?.salesmanId]?.name ?? '';
+        if (smA != smB) return smA.compareTo(smB);
+        final colSeqA = int.tryParse(a.collectionSequence.isNotEmpty ? a.collectionSequence : a.sequenceNo) ?? 999999;
+        final colSeqB = int.tryParse(b.collectionSequence.isNotEmpty ? b.collectionSequence : b.sequenceNo) ?? 999999;
+        return colSeqA.compareTo(colSeqB);
+      } else if (sortBy == 'delivery_delivery') {
+        // 6. ડિલિવરી મેન + ડિલિવરી ક્રમ (Delivery Man + Delivery Sequence)
+        final dmA = salesmanMap[rA?.salesmanId]?.name ?? '';
+        final dmB = salesmanMap[rB?.salesmanId]?.name ?? '';
+        if (dmA != dmB) return dmA.compareTo(dmB);
+        final seqA = int.tryParse(a.sequenceNo) ?? 999999;
+        final seqB = int.tryParse(b.sequenceNo) ?? 999999;
+        return seqA.compareTo(seqB);
       } else {
         final seqA = int.tryParse(a.sequenceNo) ?? 999999;
         final seqB = int.tryParse(b.sequenceNo) ?? 999999;
