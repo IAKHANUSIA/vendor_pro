@@ -32,9 +32,6 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: 🛠️ Setup Flutter Android Scaffold
-        run: flutter create . --org com.vendorpro --project-name vendor_pro --platforms=android
-
       - name: 📦 Install Flutter Dependencies
         run: flutter pub get
 
@@ -55,18 +52,18 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v1.0.0
-          name: "Vendor Pro v1.0.0 (Android APK)"
+          tag_name: v1.0.1
+          name: "Vendor Pro v1.0.1 (Android APK)"
+          make_latest: true
           body: |
-            ## 📰 Vendor Pro - ન્યૂઝપેપર વિતરણ અને બિલિંગ મેનેજમેન્ટ સિસ્ટમ
+            ## 📰 Vendor Pro - ન્યૂઝપેપર વિતરણ અને બિલિંગ મેનેજમેન્ટ સિસ્ટમ (Latest Release)
             - ૧૦૦% ઓફલાઇન સપોર્ટ (No Internet Required)
-            - ડેપો ખરીદી પત્રક (PTR ખરીદ ભાવ અને નફો)
-            - બોનસ પેપર્સ (વાર મુજબ અને બધા ગ્રાહકો)
-            - ૧-ક્લિક WhatsApp બિલિંગ મેસેજ અને UPI QR કોડ
-            - A4 4-in-1 પ્રિન્ટિંગ
+            - ડિજિટલ બિલ & પેમેન્ટ પહોંચ ઈમેજ કાર્ડ + WhatsApp શેર
+            - લાઇન અને સ્ટાફ માસ્ટર પગાર સુધારો
+            - ડેપો ખરીદી પત્રક, બોનસ પેપર્સ, UPI QR
             
-            ### 📲 ડાઉનલોડ કરો:
-            નીચે આપેલ **`VendorPro.apk`** ફાઇલ પર ક્લિક કરીને સીધું જ તમારા ફોનમાં ઇન્સ્ટોલ કરો.
+            ### 📲 ડાઉનલોડ કરવા માટે:
+            નીચે આપેલ **VendorPro.apk** ફાઇલ ડાઉનલોડ કરીને તમારા એન્ડ્રોઇડ ફોનમાં ઇન્સ્ટોલ કરો.
           files: VendorPro.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
