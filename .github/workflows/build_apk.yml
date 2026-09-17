@@ -35,8 +35,10 @@ jobs:
 
       - name: 🛠️ Setup Flutter Android & local.properties
         run: |
-          sed -i 's/\r$//' android/gradlew || true
-          chmod +x android/gradlew
+          if [ -f "android/gradlew" ]; then
+            sed -i 's/\r$//' android/gradlew
+            chmod +x android/gradlew
+          fi
           flutter config --no-analytics
           echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
           echo "sdk.dir=$ANDROID_HOME" >> android/local.properties
@@ -61,8 +63,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
         with:
-          tag_name: v1.0.4
-          name: "Vendor Pro v1.0.4 (Android APK)"
+          tag_name: v1.0.5
+          name: "Vendor Pro v1.0.5 (Android APK)"
           make_latest: true
           body: |
             ## 📰 Vendor Pro - ન્યૂઝપેપર વિતરણ અને બિલિંગ મેનેજમેન્ટ સિસ્ટમ (Latest Release)
