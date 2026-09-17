@@ -1,12 +1,12 @@
 {
-    "name": "vendor_pro",
-    "short_name": "vendor_pro",
+    "name": "Vendor Pro - Newspaper & Magazine Management",
+    "short_name": "Vendor Pro",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#0D1B2A",
+    "theme_color": "#1565C0",
+    "description": "Vendor Pro - Newspaper & Magazine Distribution Management System",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

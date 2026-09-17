@@ -40,3 +40,29 @@ vendor_pro/
 ├── pubspec.yaml      # Flutter dependencies & assets
 └── README.md
 ```
+
+---
+
+## 🌐 Running for Desktop / Web
+
+### 1. One-Click Desktop Shortcut
+Shortcuts have been placed on your Windows Desktop:
+- **`Vendor Pro Web.lnk`**: Double-click to start the lightweight local web server and open the web app automatically in your default desktop browser.
+- **`Vendor Pro Web (Browser URL).url`**: Direct internet shortcut to `http://localhost:8080`.
+
+### 2. Manual Terminal Commands
+- **Launch Web Server**:
+  ```powershell
+  .\Launch_Vendor_Pro_Web.bat
+  # or
+  dart run tool/web_server.dart 8080
+  ```
+- **Flutter Dev Mode**:
+  ```powershell
+  flutter run -d chrome --web-port=8080
+  ```
+
+### 3. Install as Desktop App (PWA)
+1. Open `http://localhost:8080` in **Google Chrome** or **Microsoft Edge**.
+2. Click the **Install App** icon in the address bar (or menu `...` > `Apps` > `Install Vendor Pro as an App`).
+3. Vendor Pro will run in a standalone desktop window without browser bars.
