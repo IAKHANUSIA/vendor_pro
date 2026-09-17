@@ -3,39 +3,29 @@ allprojects {
         google()
         mavenCentral()
     }
-    configurations.all {
-        resolutionStrategy {
-            force 'androidx.core:core:1.13.1'
-            force 'androidx.core:core-ktx:1.13.1'
-            force 'androidx.browser:browser:1.8.0'
-            force 'androidx.annotation:annotation:1.8.0'
-            force 'androidx.activity:activity:1.8.2'
-            force 'androidx.fragment:fragment:1.6.2'
-        }
-    }
 }
 
 subprojects {
     project.configurations.all {
-        resolutionStrategy {
-            force 'androidx.core:core:1.13.1'
-            force 'androidx.core:core-ktx:1.13.1'
-            force 'androidx.browser:browser:1.8.0'
-            force 'androidx.annotation:annotation:1.8.0'
-            force 'androidx.activity:activity:1.8.2'
-            force 'androidx.fragment:fragment:1.6.2'
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'androidx.core') {
+                details.useVersion '1.13.1'
+            }
+            if (details.requested.group == 'androidx.browser') {
+                details.useVersion '1.8.0'
+            }
         }
     }
 }
 
 rootProject.buildDir = '../build'
 subprojects {
-        project.buildDir = "${rootProject.buildDir}/${project.name}"
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
 subprojects {
-        project.evaluationDependsOn(':app')
+    project.evaluationDependsOn(':app')
 }
 
 tasks.register("clean", Delete) {
-        delete rootProject.buildDir
+    delete rootProject.buildDir
 }

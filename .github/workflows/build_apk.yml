@@ -47,7 +47,7 @@ jobs:
         run: flutter pub get
 
       - name: 🏗️ Build Release APK
-        run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
+        run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation -v
 
       - name: 🏷️ Prepare APK Artifact
         run: cp build/app/outputs/flutter-apk/app-release.apk VendorPro.apk
@@ -63,8 +63,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
         with:
-          tag_name: v1.0.9
-          name: "Vendor Pro v1.0.9 (Android APK)"
+          tag_name: v1.1.0
+          name: "Vendor Pro v1.1.0 (Android APK)"
           make_latest: true
           body: |
             ## 📰 Vendor Pro - ન્યૂઝપેપર વિતરણ અને બિલિંગ મેનેજમેન્ટ સિસ્ટમ (Latest Release)
