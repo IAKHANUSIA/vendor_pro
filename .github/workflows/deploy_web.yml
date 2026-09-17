@@ -29,7 +29,7 @@ jobs:
         run: flutter pub get
 
       - name: 🏗️ Build Web Release
-        run: flutter build web --release --base-href "/vendor_pro/" --no-tree-shake-icons
+        run: flutter build web --release --base-href "/vendor_soft_app/" --no-tree-shake-icons
 
       - name: 🚀 Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
