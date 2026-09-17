@@ -598,6 +598,8 @@ class _BillingViewState extends ConsumerState<BillingView> {
                   dropdownColor: AppColors.cardDark,
                   items: const [
                     DropdownMenuItem(value: 'salesman_delivery', child: Text('સેલ્સમેન + ડિલિવરી ક્રમ')),
+                    DropdownMenuItem(value: 'delivery_salesman', child: Text('ડિલિવરી મેન + સેલ્સમેન ક્રમ')),
+                    DropdownMenuItem(value: 'route_salesman', child: Text('લાઇન + સેલ્સમેન ક્રમ')),
                     DropdownMenuItem(value: 'route_delivery', child: Text('લાઇન + ડિલિવરી ક્રમ')),
                   ],
                   onChanged: (v) => setDialogState(() => sortBy = v ?? 'salesman_delivery'),

@@ -231,16 +231,33 @@ class DatabaseService {
       Item(
         id: 1, 
         code: 'GS', 
-        name: 'ગુજરાત સમાચાર', 
+        name: 'GUJARAT SAMACHAR', 
         defaultRate: 5.0, 
         sundayRate: 6.0,
         defaultPurchaseRate: 3.32,
-        sundayPurchaseRate: 3.98,
+        sundayPurchaseRate: 3.99,
+        rateHistory: [
+          RateRevision(
+            effectiveDate: '2026-09-19',
+            dayRates: {
+              'mon': const DayRate(sale: 6.0, purchase: 4.35),
+              'tue': const DayRate(sale: 6.0, purchase: 4.35),
+              'wed': const DayRate(sale: 6.0, purchase: 4.35),
+              'thu': const DayRate(sale: 6.0, purchase: 4.35),
+              'fri': const DayRate(sale: 6.0, purchase: 4.35),
+              'sat': const DayRate(sale: 6.0, purchase: 4.35),
+              'sun': const DayRate(sale: 6.0, purchase: 3.99),
+            },
+            defaultRate: 6.0,
+            sundayRate: 6.0,
+            monthlyRate: 0.0,
+          ),
+        ],
       ),
       Item(
         id: 2, 
         code: 'DB', 
-        name: 'દિવ્ય ભાસ્કર', 
+        name: 'DIVYA BHASKAR', 
         defaultRate: 5.0, 
         sundayRate: 6.0,
         defaultPurchaseRate: 3.32,
@@ -249,7 +266,7 @@ class DatabaseService {
       Item(
         id: 3, 
         code: 'SANJ', 
-        name: 'સાંજ સમાચાર', 
+        name: 'SANJ SAMACHAR', 
         defaultRate: 3.0, 
         sundayRate: 3.0,
         defaultPurchaseRate: 2.0,
@@ -258,11 +275,11 @@ class DatabaseService {
       Item(
         id: 4, 
         code: 'SANDESH', 
-        name: 'સંદેશ', 
+        name: 'SANDESH', 
         defaultRate: 5.0, 
         sundayRate: 6.0,
         defaultPurchaseRate: 3.32,
-        sundayPurchaseRate: 3.98,
+        sundayPurchaseRate: 3.99,
       ),
     ]);
 
@@ -567,6 +584,7 @@ class DatabaseService {
     final itemMap = {for (var i in items) i.id: i};
     final routeMap = {for (var r in routes) r.id: r};
     final salesmanMap = {for (var s in salesmen) s.id: s};
+    final collectionManMap = {for (var cm in collectionMen) cm.id: cm};
 
     final sortedCustomers = List<Customer>.from(customers);
     sortedCustomers.sort((a, b) {
@@ -574,13 +592,31 @@ class DatabaseService {
       final rB = routeMap[b.routeId];
 
       if (sortBy == 'salesman_delivery') {
-        final smA = salesmanMap[rA?.salesmanId]?.name ?? '';
-        final smB = salesmanMap[rB?.salesmanId]?.name ?? '';
+        // 1. સેલ્સમેન + ડિલિવરી ક્રમ (Salesman/Collection Man + Delivery Sequence)
+        final smA = collectionManMap[rA?.collectionManId]?.name ?? salesmanMap[rA?.salesmanId]?.name ?? '';
+        final smB = collectionManMap[rB?.collectionManId]?.name ?? salesmanMap[rB?.salesmanId]?.name ?? '';
         if (smA != smB) return smA.compareTo(smB);
         final seqA = int.tryParse(a.sequenceNo) ?? 999999;
         final seqB = int.tryParse(b.sequenceNo) ?? 999999;
         return seqA.compareTo(seqB);
+      } else if (sortBy == 'delivery_salesman') {
+        // 2. ડિલિવરી મેન + સેલ્સમેન ક્રમ (Delivery Man + Salesman/Collection Sequence)
+        final dmA = salesmanMap[rA?.salesmanId]?.name ?? '';
+        final dmB = salesmanMap[rB?.salesmanId]?.name ?? '';
+        if (dmA != dmB) return dmA.compareTo(dmB);
+        final colSeqA = int.tryParse(a.collectionSequence.isNotEmpty ? a.collectionSequence : a.sequenceNo) ?? 999999;
+        final colSeqB = int.tryParse(b.collectionSequence.isNotEmpty ? b.collectionSequence : b.sequenceNo) ?? 999999;
+        return colSeqA.compareTo(colSeqB);
+      } else if (sortBy == 'route_salesman') {
+        // 3. લાઇન + સેલ્સમેન ક્રમ (Route/Line + Salesman/Collection Sequence)
+        final rCodeA = rA?.code ?? '';
+        final rCodeB = rB?.code ?? '';
+        if (rCodeA != rCodeB) return rCodeA.compareTo(rCodeB);
+        final colSeqA = int.tryParse(a.collectionSequence.isNotEmpty ? a.collectionSequence : a.sequenceNo) ?? 999999;
+        final colSeqB = int.tryParse(b.collectionSequence.isNotEmpty ? b.collectionSequence : b.sequenceNo) ?? 999999;
+        return colSeqA.compareTo(colSeqB);
       } else if (sortBy == 'route_delivery') {
+        // 4. લાઇન + ડિલિવરી ક્રમ (Route/Line + Delivery Sequence)
         final rCodeA = rA?.code ?? '';
         final rCodeB = rB?.code ?? '';
         if (rCodeA != rCodeB) return rCodeA.compareTo(rCodeB);

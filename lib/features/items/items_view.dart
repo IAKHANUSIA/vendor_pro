@@ -69,6 +69,109 @@ class _ItemsViewState extends State<ItemsView> {
     );
   }
 
+  void _showRateHistoryModal(BuildContext context, Item item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E2638),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.history_toggle_off, color: Color(0xFF42A5F5)),
+              const SizedBox(width: 10),
+              Text('${item.name} - ભાવ સુધારા ઇતિહાસ', style: const TextStyle(color: Colors.white, fontSize: 16)),
+            ],
+          ),
+          content: SizedBox(
+            width: 520,
+            child: item.rateHistory.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text('કોઈ ભાવ સુધારો નોંધાયેલ નથી.', style: TextStyle(color: Color(0xFF90A4AE))),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: item.rateHistory.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, idx) {
+                      final rev = item.rateHistory[idx];
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF141A28),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF1E88E5).withOpacity(0.4)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.event_available, color: Color(0xFF64B5F6), size: 16),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'લાગુ તારીખ: ${rev.effectiveDate} થી',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Color(0xFFEF5350), size: 16),
+                                  splashRadius: 14,
+                                  onPressed: () {
+                                    setState(() {
+                                      item.rateHistory.removeAt(idx);
+                                    });
+                                    setModalState(() {});
+                                  },
+                                ),
+                              ],
+                            ),
+                            const Divider(color: Color(0xFF222F46), height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((d) {
+                                final dr = rev.dayRates[d];
+                                final dayNames = {'mon': 'સોમ', 'tue': 'મંગળ', 'wed': 'બુધ', 'thu': 'ગુરુ', 'fri': 'શુક્ર', 'sat': 'શનિ', 'sun': 'રવિ'};
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: d == 'sun' ? const Color(0xFF381E24) : const Color(0xFF1E283C),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '${dayNames[d]}: ₹${dr?.sale ?? 0} (${dr?.purchase ?? 0})',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: d == 'sun' ? const Color(0xFFEF5350) : const Color(0xFFB0BEC5),
+                                      fontWeight: d == 'sun' ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('બંધ કરો', style: TextStyle(color: Colors.white70)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   String _formatRateSummary(Item item) {
     final mon = item.getRateForDay(1);
     final tue = item.getRateForDay(2);
@@ -238,16 +341,51 @@ class _ItemsViewState extends State<ItemsView> {
                                         ),
                                       ),
 
-                                      // Name
+                                      // Name & Rate Revision Badge matching Image 1
                                       Expanded(
                                         flex: 3,
-                                        child: Text(
-                                          item.name,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                            color: Colors.white,
-                                          ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              item.name,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            if (item.rateHistory.isNotEmpty) ...[
+                                              const SizedBox(height: 4),
+                                              InkWell(
+                                                onTap: () => _showRateHistoryModal(context, item),
+                                                borderRadius: BorderRadius.circular(4),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Container(
+                                                      padding: const EdgeInsets.all(2),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFF1E88E5),
+                                                        borderRadius: BorderRadius.circular(3),
+                                                      ),
+                                                      child: const Icon(Icons.sync_alt, size: 10, color: Colors.white),
+                                                    ),
+                                                    const SizedBox(width: 5),
+                                                    Text(
+                                                      '${item.rateHistory.length} ભાવ સુધારા (${item.rateHistory.last.effectiveDate} થી)',
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                        color: Color(0xFF64B5F6),
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                       ),
 
