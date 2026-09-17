@@ -274,97 +274,141 @@ class _DepotPurchaseViewState extends ConsumerState<DepotPurchaseView> with Sing
               children: [
                 // Top Date Selector, Quick Buttons & Info Row (Matching Image 4)
                 Card(
+                  color: const Color(0xFF161E2E),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF222F46))),
                   child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(
+                    padding: const EdgeInsets.all(16),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 10,
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        const Text(
-                          '🏬 આવતીકાલનું સેલ અને ડેપો ખરીદી હિસાબ',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
-                        ),
-                        const Spacer(),
-
-                        // Date Selector
-                        InkWell(
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: _targetDate,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2030),
-                            );
-                            if (picked != null) setState(() => _targetDate = picked);
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: AppColors.bgSurfaceDark,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.borderDark),
-                            ),
-                            child: Row(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.storefront, color: Color(0xFF42A5F5), size: 22),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('તારીખ: ', style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
-                                Text(
-                                  DateFormat('dd/MM/yyyy').format(_targetDate),
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                                const Text(
+                                  '🏬 ડેપો ખરીદી ઓર્ડર શીટ (સાંજનું સેલ)',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
                                 ),
-                                const SizedBox(width: 6),
-                                const Icon(Icons.calendar_today, size: 14, color: AppColors.warningLight),
+                                Text(
+                                  'તારીખ: ${DateFormat("dd/MM/yyyy").format(_targetDate)} ($dayName)',
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFFFFB74D), fontWeight: FontWeight.bold),
+                                ),
                               ],
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
 
-                        // Tomorrow Button
-                        OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.accentCyan,
-                            side: const BorderSide(color: AppColors.accentCyan),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _targetDate = DateTime.now().add(const Duration(days: 1));
-                            });
-                          },
-                          icon: const Icon(Icons.event, size: 15),
-                          label: const Text('આવતીકાલ'),
-                        ),
-                        const SizedBox(width: 6),
+                        // Date Action Buttons Group
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            // Date Picker Box
+                            InkWell(
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _targetDate,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2030),
+                                );
+                                if (picked != null) setState(() => _targetDate = picked);
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF111722),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFF2A364F)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.calendar_month, size: 16, color: Color(0xFF42A5F5)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      DateFormat('dd/MM/yyyy').format(_targetDate),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Icon(Icons.arrow_drop_down, color: Color(0xFF90A4AE), size: 18),
+                                  ],
+                                ),
+                              ),
+                            ),
 
-                        // Today Button
-                        OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primaryTeal,
-                            side: const BorderSide(color: AppColors.primaryTeal),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _targetDate = DateTime.now();
-                            });
-                          },
-                          icon: const Icon(Icons.today, size: 15),
-                          label: const Text('આજે'),
-                        ),
-                        const SizedBox(width: 8),
+                            // Quick "📅 આવતીકાલ" Button
+                            Builder(
+                              builder: (context) {
+                                final isTomorrow = DateFormat('yyyy-MM-dd').format(_targetDate) ==
+                                    DateFormat('yyyy-MM-dd').format(DateTime.now().add(const Duration(days: 1)));
+                                return ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isTomorrow ? const Color(0xFF00ACC1) : const Color(0xFF141F32),
+                                    foregroundColor: Colors.white,
+                                    side: BorderSide(color: isTomorrow ? const Color(0xFF26C6DA) : const Color(0xFF1E88E5).withOpacity(0.4)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _targetDate = DateTime.now().add(const Duration(days: 1));
+                                    });
+                                  },
+                                  icon: const Icon(Icons.event, size: 16),
+                                  label: const Text('📅 આવતીકાલ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                );
+                              },
+                            ),
 
-                        // Print Slip Button
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            PrintService.printDepotPurchaseSheetPdf(context, sheet, db.firm);
-                          },
-                          icon: const Icon(Icons.print, size: 16),
-                          label: const Text('ડેપો સ્લિપ પ્રિન્ટ'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
+                            // Quick "📅 આજે" Button
+                            Builder(
+                              builder: (context) {
+                                final isToday = DateFormat('yyyy-MM-dd').format(_targetDate) ==
+                                    DateFormat('yyyy-MM-dd').format(DateTime.now());
+                                return ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isToday ? const Color(0xFF2E7D32) : const Color(0xFF141F32),
+                                    foregroundColor: Colors.white,
+                                    side: BorderSide(color: isToday ? const Color(0xFF4CAF50) : const Color(0xFF2E7D32).withOpacity(0.4)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _targetDate = DateTime.now();
+                                    });
+                                  },
+                                  icon: const Icon(Icons.today, size: 16),
+                                  label: const Text('📅 આજે', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                );
+                              },
+                            ),
+
+                            // Print Slip Button
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                PrintService.printDepotPurchaseSheetPdf(context, sheet, db.firm);
+                              },
+                              icon: const Icon(Icons.print, size: 16),
+                              label: const Text('🖨️ ડેપો સ્લિપ પ્રિન્ટ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1976D2),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
