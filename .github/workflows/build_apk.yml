@@ -47,24 +47,44 @@ jobs:
         run: flutter pub get
 
       - name: 🏗️ Build Release APK
-        run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation -v
+        run: |
+          flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation -v > build_output.log 2>&1
+        continue-on-error: true
 
-      - name: 🏷️ Prepare APK Artifact
-        run: cp build/app/outputs/flutter-apk/app-release.apk VendorPro.apk
+      - name: 📋 Display Build Log Tail
+        run: |
+          tail -n 120 build_output.log
+
+      - name: 🏷️ Check and Prepare APK Artifact
+        run: |
+          if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
+            cp build/app/outputs/flutter-apk/app-release.apk VendorPro.apk
+            echo "BUILD_SUCCESS=true" >> $GITHUB_ENV
+          else
+            echo "BUILD_SUCCESS=false" >> $GITHUB_ENV
+          fi
 
       - name: 📤 Upload Release APK as Artifact
+        if: env.BUILD_SUCCESS == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: Vendor-Pro-Release-APK
           path: VendorPro.apk
           if-no-files-found: error
 
+      - name: 📋 Upload Build Log Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flutter-Build-Log
+          path: build_output.log
+
       - name: 🚀 Publish Direct GitHub Release
         uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
+        if: env.BUILD_SUCCESS == 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
         with:
-          tag_name: v1.1.0
-          name: "Vendor Pro v1.1.0 (Android APK)"
+          tag_name: v1.1.1
+          name: "Vendor Pro v1.1.1 (Android APK)"
           make_latest: true
           body: |
             ## 📰 Vendor Pro - ન્યૂઝપેપર વિતરણ અને બિલિંગ મેનેજમેન્ટ સિસ્ટમ (Latest Release)
@@ -78,3 +98,7 @@ jobs:
           files: VendorPro.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ❌ Fail if APK not created
+        if: env.BUILD_SUCCESS != 'true'
+        run: exit 1
