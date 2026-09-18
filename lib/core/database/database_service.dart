@@ -229,7 +229,7 @@ class DatabaseService {
       CollectionMan(id: 4, name: '1 YEAR', mobile: '', salary: 0),
       CollectionMan(id: 5, name: 'W. COPI', mobile: '', salary: 0),
       CollectionMan(id: 6, name: 'FOC', mobile: '', salary: 0),
-      CollectionMan(id: 7, name: 'NIZAM', mobile: '', salary: 0),
+      CollectionMan(id: 7, name: 'NIZAM', mobile: '8401996908', salary: 0),
       CollectionMan(id: 8, name: 'F.TIME', mobile: '', salary: 0),
     ]);
 
@@ -1246,6 +1246,12 @@ class DatabaseService {
             if (s is Map) salesmen.add(Salesman.fromJson(Map<String, dynamic>.from(s)));
           }
         }
+        if (data['collectionMen'] is List) {
+          collectionMen.clear();
+          for (final c in data['collectionMen']) {
+            if (c is Map) collectionMen.add(CollectionMan.fromJson(Map<String, dynamic>.from(c)));
+          }
+        }
         if (data['massIssues'] is List) {
           massIssues.clear();
           for (final m in data['massIssues']) {
@@ -1296,6 +1302,7 @@ class DatabaseService {
       'customers': customers.map((c) => c.toJson()).toList(),
       'routes': routes.map((r) => r.toJson()).toList(),
       'salesmen': salesmen.map((s) => s.toJson()).toList(),
+      'collectionMen': collectionMen.map((c) => c.toJson()).toList(),
       'massIssues': massIssues.map((m) => m.toJson()).toList(),
       'vacations': vacations.map((v) => v.toJson()).toList(),
       'bills': bills.map((b) => b.toJson()).toList(),

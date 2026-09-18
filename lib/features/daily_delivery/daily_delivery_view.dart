@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/database/database_service.dart';
 import '../../core/models/customer.dart';
@@ -233,221 +234,349 @@ class _DailyDeliveryViewState extends ConsumerState<DailyDeliveryView> {
       }
     }
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isNarrow = screenWidth < 800;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isNarrow ? 10 : 16),
         child: Column(
           children: [
             // Top Toolbar: Date, Route, Salesman, Collection Filter & Actions
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    // Search Bar
-                    Expanded(
-                      flex: 2,
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (v) => setState(() => _searchQuery = v),
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.search, color: AppColors.textSecondaryDark, size: 18),
-                          hintText: 'ગ્રાહક શોધો...',
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Route Selector
-                    Expanded(
-                      flex: 2,
-                      child: DropdownButtonFormField<int?>(
-                        value: _selectedRouteId,
-                        dropdownColor: AppColors.bgCardDark,
-                        decoration: const InputDecoration(isDense: true, labelText: 'ડિલિવરી લાઇન / રૂટ'),
-                        items: [
-                          const DropdownMenuItem<int?>(value: null, child: Text('બધી લાઇન (All Routes)')),
-                          ...db.routes.map((r) => DropdownMenuItem<int?>(value: r.id, child: Text('${r.code} - ${r.name}'))),
-                        ],
-                        onChanged: (v) => setState(() => _selectedRouteId = v),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Salesman / Delivery Filter
-                    Expanded(
-                      flex: 2,
-                      child: DropdownButtonFormField<int?>(
-                        value: _selectedSalesmanFilter,
-                        dropdownColor: AppColors.bgCardDark,
-                        decoration: const InputDecoration(isDense: true, labelText: '🚴 વિતરક'),
-                        items: [
-                          const DropdownMenuItem<int?>(value: null, child: Text('બધા વિતરક')),
-                          ...db.salesmen.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.name))),
-                        ],
-                        onChanged: (v) => setState(() => _selectedSalesmanFilter = v),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Collection Man Filter
-                    Expanded(
-                      flex: 2,
-                      child: DropdownButtonFormField<int?>(
-                        value: _selectedCollectionManFilter,
-                        dropdownColor: AppColors.bgCardDark,
-                        decoration: const InputDecoration(isDense: true, labelText: '💼 ઉઘરાણીદાર'),
-                        items: [
-                          const DropdownMenuItem<int?>(value: null, child: Text('બધા ઉઘરાણીદાર')),
-                          ...db.collectionMen.map((cm) => DropdownMenuItem<int?>(value: cm.id, child: Text(cm.name))),
-                        ],
-                        onChanged: (v) => setState(() => _selectedCollectionManFilter = v),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Date Picker
-                    Expanded(
-                      flex: 2,
-                      child: InkWell(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: _selectedDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2030),
-                          );
-                          if (picked != null) setState(() => _selectedDate = picked);
-                        },
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.bgSurfaceDark,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.borderDark),
-                          ),
-                          child: Row(
+                child: isNarrow
+                    ? Column(
+                        children: [
+                          Row(
                             children: [
-                              const Icon(Icons.calendar_today, size: 14, color: AppColors.accentCyan),
-                              const SizedBox(width: 6),
+                              // Search Bar
                               Expanded(
-                                child: Text(
-                                  '${DateFormat('dd/MM/yyyy').format(_selectedDate)} ($dayName)',
-                                  style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 12),
-                                  overflow: TextOverflow.ellipsis,
+                                flex: 3,
+                                child: TextField(
+                                  controller: _searchController,
+                                  onChanged: (v) => setState(() => _searchQuery = v),
+                                  decoration: const InputDecoration(
+                                    prefixIcon: Icon(Icons.search, color: AppColors.textSecondaryDark, size: 18),
+                                    hintText: 'ગ્રાહક શોધો...',
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Date Picker
+                              InkWell(
+                                onTap: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: _selectedDate,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2030),
+                                  );
+                                  if (picked != null) setState(() => _selectedDate = picked);
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.bgSurfaceDark,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: AppColors.borderDark),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.calendar_today, size: 14, color: AppColors.accentCyan),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        DateFormat('dd/MM').format(_selectedDate),
+                                        style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              // Route Selector
+                              Expanded(
+                                child: DropdownButtonFormField<int?>(
+                                  value: _selectedRouteId,
+                                  dropdownColor: AppColors.bgCardDark,
+                                  isExpanded: true,
+                                  decoration: const InputDecoration(isDense: true, labelText: 'રૂટ/લાઇન'),
+                                  items: [
+                                    const DropdownMenuItem<int?>(value: null, child: Text('બધી લાઇન')),
+                                    ...db.routes.map((r) => DropdownMenuItem<int?>(value: r.id, child: Text('${r.code} - ${r.name}'))),
+                                  ],
+                                  onChanged: (v) => setState(() => _selectedRouteId = v),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Salesman / Delivery Filter
+                              Expanded(
+                                child: DropdownButtonFormField<int?>(
+                                  value: _selectedSalesmanFilter,
+                                  dropdownColor: AppColors.bgCardDark,
+                                  isExpanded: true,
+                                  decoration: const InputDecoration(isDense: true, labelText: '🚴 વિતરક'),
+                                  items: [
+                                    const DropdownMenuItem<int?>(value: null, child: Text('બધા વિતરક')),
+                                    ...db.salesmen.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.name))),
+                                  ],
+                                  onChanged: (v) => setState(() => _selectedSalesmanFilter = v),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: AppColors.primaryTeal),
+                                    foregroundColor: AppColors.primaryTeal,
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                  ),
+                                  onPressed: lineCustomers.isEmpty
+                                      ? null
+                                      : () => _printSheet(context, currentRoute, currentSalesman, lineCustomers, paperSummary),
+                                  icon: const Icon(Icons.print, size: 14),
+                                  label: const Text('પ્રિન્ટ', style: TextStyle(fontSize: 11)),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: AppColors.accentCyan),
+                                    foregroundColor: AppColors.accentCyan,
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                  ),
+                                  onPressed: _openRouteOrderDialog,
+                                  icon: const Icon(Icons.swap_vert, size: 14),
+                                  label: const Text('ક્રમ', style: TextStyle(fontSize: 11)),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                  ),
+                                  onPressed: lineCustomers.isEmpty ? null : () => _markAllDelivered(lineCustomers, dateStr),
+                                  icon: const Icon(Icons.done_all, size: 14),
+                                  label: const Text('બધા', style: TextStyle(fontSize: 11)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          // Search Bar
+                          Expanded(
+                            flex: 2,
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (v) => setState(() => _searchQuery = v),
+                              decoration: const InputDecoration(
+                                prefixIcon: Icon(Icons.search, color: AppColors.textSecondaryDark, size: 18),
+                                hintText: 'ગ્રાહક શોધો...',
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
 
-                    // Print Morning Sheet Button
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.primaryTeal),
-                        foregroundColor: AppColors.primaryTeal,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                      ),
-                      onPressed: lineCustomers.isEmpty
-                          ? null
-                          : () => _printSheet(context, currentRoute, currentSalesman, lineCustomers, paperSummary),
-                      icon: const Icon(Icons.print, size: 16),
-                      label: const Text('🖨️ શીટ પ્રિન્ટ'),
-                    ),
-                    const SizedBox(width: 6),
+                          // Route Selector
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<int?>(
+                              value: _selectedRouteId,
+                              dropdownColor: AppColors.bgCardDark,
+                              decoration: const InputDecoration(isDense: true, labelText: 'ડિલિવરી લાઇન / રૂટ'),
+                              items: [
+                                const DropdownMenuItem<int?>(value: null, child: Text('બધી લાઇન (All Routes)')),
+                                ...db.routes.map((r) => DropdownMenuItem<int?>(value: r.id, child: Text('${r.code} - ${r.name}'))),
+                              ],
+                              onChanged: (v) => setState(() => _selectedRouteId = v),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
 
-                    // Reorder Street Sequence Button
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.accentCyan),
-                        foregroundColor: AppColors.accentCyan,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                      ),
-                      onPressed: _openRouteOrderDialog,
-                      icon: const Icon(Icons.swap_vert, size: 16),
-                      label: const Text('🔀 ક્રમ'),
-                    ),
-                    const SizedBox(width: 6),
+                          // Salesman / Delivery Filter
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<int?>(
+                              value: _selectedSalesmanFilter,
+                              dropdownColor: AppColors.bgCardDark,
+                              decoration: const InputDecoration(isDense: true, labelText: '🚴 વિતરક'),
+                              items: [
+                                const DropdownMenuItem<int?>(value: null, child: Text('બધા વિતરક')),
+                                ...db.salesmen.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.name))),
+                              ],
+                              onChanged: (v) => setState(() => _selectedSalesmanFilter = v),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
 
-                    // Mark All Delivered Button
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          // Collection Man Filter
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<int?>(
+                              value: _selectedCollectionManFilter,
+                              dropdownColor: AppColors.bgCardDark,
+                              decoration: const InputDecoration(isDense: true, labelText: '💼 ઉઘરાણીદાર'),
+                              items: [
+                                const DropdownMenuItem<int?>(value: null, child: Text('બધા ઉઘરાણીદાર')),
+                                ...db.collectionMen.map((cm) => DropdownMenuItem<int?>(value: cm.id, child: Text(cm.name))),
+                              ],
+                              onChanged: (v) => setState(() => _selectedCollectionManFilter = v),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Date Picker
+                          Expanded(
+                            flex: 2,
+                            child: InkWell(
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _selectedDate,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2030),
+                                );
+                                if (picked != null) setState(() => _selectedDate = picked);
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.bgSurfaceDark,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.borderDark),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.calendar_today, size: 14, color: AppColors.accentCyan),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        '${DateFormat('dd/MM/yyyy').format(_selectedDate)} ($dayName)',
+                                        style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 12),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Print Morning Sheet Button
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppColors.primaryTeal),
+                              foregroundColor: AppColors.primaryTeal,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            ),
+                            onPressed: lineCustomers.isEmpty
+                                ? null
+                                : () => _printSheet(context, currentRoute, currentSalesman, lineCustomers, paperSummary),
+                            icon: const Icon(Icons.print, size: 16),
+                            label: const Text('🖨️ શીટ પ્રિન્ટ'),
+                          ),
+                          const SizedBox(width: 6),
+
+                          // Reorder Street Sequence Button
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppColors.accentCyan),
+                              foregroundColor: AppColors.accentCyan,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            ),
+                            onPressed: _openRouteOrderDialog,
+                            icon: const Icon(Icons.swap_vert, size: 16),
+                            label: const Text('🔀 ક્રમ'),
+                          ),
+                          const SizedBox(width: 6),
+
+                          // Mark All Delivered Button
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            ),
+                            onPressed: lineCustomers.isEmpty ? null : () => _markAllDelivered(lineCustomers, dateStr),
+                            icon: const Icon(Icons.done_all, size: 16),
+                            label: const Text('બધા પહોંચાડ્યા'),
+                          ),
+                        ],
                       ),
-                      onPressed: lineCustomers.isEmpty ? null : () => _markAllDelivered(lineCustomers, dateStr),
-                      icon: const Icon(Icons.done_all, size: 16),
-                      label: const Text('બધા પહોંચાડ્યા'),
-                    ),
-                  ],
-                ),
               ),
             ),
             const SizedBox(height: 10),
 
             // Paper Metrics Pills Banner & Assigned Salesman
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 if (paperSummary.isNotEmpty)
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF161B26),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF2A3447)),
-                      ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF161B26),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF2A3447)),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          const Text('📰 પેપર વિતરણ કાઉન્ટર: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.accentCyan)),
+                          const Text('📰 પેપર કાઉન્ટર: ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.accentCyan)),
                           const SizedBox(width: 8),
-                          Expanded(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  ...paperSummary.entries.map((e) => Container(
-                                        margin: const EdgeInsets.only(right: 8),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primaryTeal.withOpacity(0.15),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: AppColors.primaryTeal.withOpacity(0.3)),
-                                        ),
-                                        child: Text(
-                                          '${e.key}: ${e.value}',
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.accentCyan),
-                                        ),
-                                      )),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.accentAmber.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: AppColors.accentAmber.withOpacity(0.4)),
-                                    ),
-                                    child: Text(
-                                      'કુલ: ${paperSummary.values.fold<int>(0, (a, b) => a + b)} નકલો',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.accentAmber),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          ...paperSummary.entries.map((e) => Container(
+                                margin: const EdgeInsets.only(right: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryTeal.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: AppColors.primaryTeal.withOpacity(0.3)),
+                                ),
+                                child: Text(
+                                  '${e.key}: ${e.value}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.accentCyan),
+                                ),
+                              )),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentAmber.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: AppColors.accentAmber.withOpacity(0.4)),
+                            ),
+                            child: Text(
+                              'કુલ: ${paperSummary.values.fold<int>(0, (a, b) => a + b)} નકલો',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.accentAmber),
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                if (currentSalesman != null) ...[
-                  const SizedBox(width: 10),
+                if (currentSalesman != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(8),
@@ -455,60 +584,21 @@ class _DailyDeliveryViewState extends ConsumerState<DailyDeliveryView> {
                     ),
                     child: Text(
                       '🚴‍♂️ વિતરક: ${currentSalesman.name} (${currentSalesman.mobile})',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentCyan, fontSize: 12),
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentCyan, fontSize: 11),
                     ),
                   ),
-                ],
               ],
             ),
             const SizedBox(height: 10),
 
-            // Rich Table Header (Matching Image 3)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF131924),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                border: Border.all(color: AppColors.borderDark),
-              ),
-              child: const Row(
-                children: [
-                  SizedBox(
-                    width: 90,
-                    child: Text('વિતરણ ક્રમ નંબર', style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text('ગ્રાહક', style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text('પેપર્સ', style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: Text('સરનામું', style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                  SizedBox(
-                    width: 130,
-                    child: Text('વિતરણ સ્થિતિ', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                  SizedBox(
-                    width: 90,
-                    child: Text('ક્રિયાઓ', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                ],
-              ),
-            ),
-
-            // Customers Table Body (Matching Image 3)
+            // Customers Table Body (Adaptive)
             Expanded(
               child: lineCustomers.isEmpty
                   ? Container(
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: AppColors.bgCardDark,
-                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: AppColors.borderDark),
                       ),
                       child: const Text(
@@ -516,15 +606,10 @@ class _DailyDeliveryViewState extends ConsumerState<DailyDeliveryView> {
                         style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 15),
                       ),
                     )
-                  : Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.bgCardDark,
-                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
-                        border: Border.all(color: AppColors.borderDark),
-                      ),
-                      child: ListView.separated(
+                  : isNarrow
+                      // Mobile Delivery Card List (Touch-friendly, Zero Overflow)
+                      ? ListView.builder(
                         itemCount: lineCustomers.length,
-                        separatorBuilder: (ctx, i) => const Divider(height: 1, color: Color(0xFF1E2838)),
                         itemBuilder: (ctx, index) {
                           final c = lineCustomers[index];
                           final onVacation = db.vacations.any((v) => v.customerId == c.id && v.isActiveOn(dateStr));
@@ -537,150 +622,149 @@ class _DailyDeliveryViewState extends ConsumerState<DailyDeliveryView> {
                           }).where((n) => n != null).toList();
 
                           return Container(
-                            color: onVacation ? AppColors.danger.withOpacity(0.06) : null,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            child: Row(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: onVacation ? AppColors.danger.withOpacity(0.08) : AppColors.bgCardDark,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: onVacation ? AppColors.danger.withOpacity(0.3) : AppColors.borderDark,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // 1. Sequence Number
-                                SizedBox(
-                                  width: 90,
-                                  child: Text(
-                                    c.sequenceNo.isNotEmpty ? c.sequenceNo : '${index + 1}',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryLight, fontSize: 14),
-                                  ),
-                                ),
-
-                                // 2. Customer Name, Code, Phone
-                                Expanded(
-                                  flex: 3,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        c.name,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryTeal.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(6),
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '${c.code.isNotEmpty ? c.code : "C-" + c.id.toString()}${c.mobile.isNotEmpty ? " • 📞 " + c.mobile : ""}',
-                                        style: const TextStyle(color: AppColors.textMutedDark, fontSize: 11),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                // 3. Papers Badges
-                                Expanded(
-                                  flex: 3,
-                                  child: onVacation
-                                      ? Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.danger.withOpacity(0.2),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: const Text('🌴 રજા પર છે', style: TextStyle(color: AppColors.dangerLight, fontSize: 11, fontWeight: FontWeight.bold)),
-                                        )
-                                      : Wrap(
-                                          spacing: 4,
-                                          runSpacing: 4,
-                                          children: todayPapers.isEmpty
-                                              ? [const Text('-', style: TextStyle(color: AppColors.textMutedDark))]
-                                              : todayPapers.map((p) {
-                                                  return Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                    decoration: BoxDecoration(
-                                                      color: AppColors.primaryTeal.withOpacity(0.18),
-                                                      borderRadius: BorderRadius.circular(4),
-                                                      border: Border.all(color: AppColors.primaryTeal.withOpacity(0.35)),
-                                                    ),
-                                                    child: Text(
-                                                      p!.toUpperCase(),
-                                                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.accentCyan),
-                                                    ),
-                                                  );
-                                                }).toList(),
-                                        ),
-                                ),
-
-                                // 4. Address
-                                Expanded(
-                                  flex: 4,
-                                  child: Text(
-                                    c.address.isNotEmpty ? c.address : (c.societyShort.isNotEmpty ? c.societyShort : '-'),
-                                    style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-
-                                // 5. Delivery Status (Instant toggle matching Image 3)
-                                SizedBox(
-                                  width: 130,
-                                  child: Center(
-                                    child: InkWell(
-                                      onTap: onVacation
-                                          ? null
-                                          : () {
-                                              final newStatus = isDelivered ? 'undelivered' : 'delivered';
-                                              db.setDeliveryStatus(dateStr, c.id, newStatus);
-                                              notifyDbChanged(ref);
-                                              if (db.storageMode == 'cloud') {
-                                                CloudSyncService.instance.syncToCloud(db);
-                                              }
-                                              setState(() {});
-                                            },
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: isDelivered
-                                              ? const Color(0xFF1B4D3E).withOpacity(0.7)
-                                              : AppColors.surfaceDark,
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(
-                                            color: isDelivered ? AppColors.successGreen : AppColors.borderDark,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              isDelivered ? Icons.check : Icons.radio_button_unchecked,
-                                              size: 14,
-                                              color: isDelivered ? AppColors.successLight : AppColors.textMutedDark,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              isDelivered ? 'આપી દીધું' : 'બાકી',
-                                              style: TextStyle(
-                                                color: isDelivered ? AppColors.successLight : AppColors.textSecondaryDark,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 11,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                      child: Text(
+                                        '#${c.sequenceNo.isNotEmpty ? c.sequenceNo : (index + 1).toString()}',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryLight, fontSize: 12),
                                       ),
                                     ),
-                                  ),
-                                ),
-
-                                // 6. Actions (🌴 રજા Quick Button)
-                                SizedBox(
-                                  width: 90,
-                                  child: Center(
-                                    child: OutlinedButton.icon(
-                                      style: OutlinedButton.styleFrom(
-                                        side: const BorderSide(color: AppColors.accentGold, width: 0.8),
-                                        foregroundColor: AppColors.accentGold,
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            c.name,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                                          ),
+                                          if (c.code.isNotEmpty || c.mobile.isNotEmpty)
+                                            Text(
+                                              '${c.code.isNotEmpty ? c.code : "C-" + c.id.toString()}${c.mobile.isNotEmpty ? " • 📞 " + c.mobile : ""}',
+                                              style: const TextStyle(color: AppColors.textMutedDark, fontSize: 11),
+                                            ),
+                                        ],
                                       ),
+                                    ),
+                                    if (c.mobile.isNotEmpty)
+                                      IconButton(
+                                        icon: const Icon(Icons.call_outlined, size: 18, color: Color(0xFF64B5F6)),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () => launchUrl(Uri.parse('tel:${c.mobile}'), mode: LaunchMode.externalApplication),
+                                      ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: const Icon(Icons.beach_access, size: 18, color: AppColors.accentGold),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
                                       onPressed: () => _openQuickVacationDialog(c),
-                                      icon: const Icon(Icons.beach_access, size: 13),
-                                      label: const Text('રજા', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      tooltip: 'રજા નોંધો',
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                // Subscribed Papers / Vacation Badge
+                                if (onVacation)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.danger.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text('🌴 રજા પર છે', style: TextStyle(color: AppColors.dangerLight, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  )
+                                else if (todayPapers.isNotEmpty)
+                                  Wrap(
+                                    spacing: 4,
+                                    runSpacing: 4,
+                                    children: todayPapers.map((p) {
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primaryTeal.withOpacity(0.18),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: AppColors.primaryTeal.withOpacity(0.35)),
+                                        ),
+                                        child: Text(
+                                          p!.toUpperCase(),
+                                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.accentCyan),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                if (c.address.isNotEmpty || c.societyShort.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '📍 ${c.address.isNotEmpty ? c.address : c.societyShort}',
+                                    style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11),
+                                  ),
+                                ],
+                                const SizedBox(height: 8),
+                                // Delivery Status Action Toggle Button
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: InkWell(
+                                    onTap: onVacation
+                                        ? null
+                                        : () {
+                                            final newStatus = isDelivered ? 'undelivered' : 'delivered';
+                                            db.setDeliveryStatus(dateStr, c.id, newStatus);
+                                            notifyDbChanged(ref);
+                                            if (db.storageMode == 'cloud') {
+                                              CloudSyncService.instance.syncToCloud(db);
+                                            }
+                                            setState(() {});
+                                          },
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: isDelivered
+                                            ? const Color(0xFF1B4D3E).withOpacity(0.7)
+                                            : AppColors.surfaceDark,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: isDelivered ? AppColors.successGreen : AppColors.borderDark,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            isDelivered ? Icons.check_circle : Icons.radio_button_unchecked,
+                                            size: 16,
+                                            color: isDelivered ? AppColors.successLight : AppColors.textMutedDark,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            isDelivered ? 'આપી દીધું (Delivered)' : 'બાકી છે (Tap to Mark Delivered)',
+                                            style: TextStyle(
+                                              color: isDelivered ? AppColors.successLight : AppColors.textSecondaryDark,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -688,8 +772,232 @@ class _DailyDeliveryViewState extends ConsumerState<DailyDeliveryView> {
                             ),
                           );
                         },
-                      ),
-                    ),
+                      )
+                      // Desktop & Tablet Table Layout (Horizontal Scroll Safe)
+                      : Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.bgCardDark,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.borderDark),
+                          ),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: 960,
+                              child: Column(
+                                children: [
+                                  // Table Header
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF131924),
+                                      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+                                    ),
+                                    child: const Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 90,
+                                          child: Text('વિતરણ ક્રમ નંબર', style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
+                                        ),
+                                        Expanded(
+                                          flex: 3,
+                                          child: Text('ગ્રાહક', style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
+                                        ),
+                                        Expanded(
+                                          flex: 3,
+                                          child: Text('પેપર્સ', style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
+                                        ),
+                                        Expanded(
+                                          flex: 4,
+                                          child: Text('સરનામું', style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
+                                        ),
+                                        SizedBox(
+                                          width: 130,
+                                          child: Text('વિતરણ સ્થિતિ', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
+                                        ),
+                                        SizedBox(
+                                          width: 90,
+                                          child: Text('ક્રિયાઓ', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondaryDark, fontWeight: FontWeight.bold, fontSize: 12)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Divider(height: 1, color: AppColors.borderDark),
+                                  // Table Body
+                                  Expanded(
+                                    child: ListView.separated(
+                                      itemCount: lineCustomers.length,
+                                      separatorBuilder: (ctx, i) => const Divider(height: 1, color: Color(0xFF1E2838)),
+                                      itemBuilder: (ctx, index) {
+                                        final c = lineCustomers[index];
+                                        final onVacation = db.vacations.any((v) => v.customerId == c.id && v.isActiveOn(dateStr));
+                                        final isDelivered = db.getDeliveryStatus(dateStr, c.id) == 'delivered';
+
+                                        final todayPapers = c.subscriptionItemIds.where((id) {
+                                          return c.isSubscribedOnDay(id, dayOfWeek, dateStr);
+                                        }).map((id) {
+                                          return db.items.cast<Item?>().firstWhere((i) => i?.id == id, orElse: () => null)?.name;
+                                        }).where((n) => n != null).toList();
+
+                                        return Container(
+                                          color: onVacation ? AppColors.danger.withOpacity(0.06) : null,
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                          child: Row(
+                                            children: [
+                                              // 1. Sequence Number
+                                              SizedBox(
+                                                width: 90,
+                                                child: Text(
+                                                  c.sequenceNo.isNotEmpty ? c.sequenceNo : '${index + 1}',
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryLight, fontSize: 14),
+                                                ),
+                                              ),
+
+                                              // 2. Customer Name, Code, Phone
+                                              Expanded(
+                                                flex: 3,
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      c.name,
+                                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      '${c.code.isNotEmpty ? c.code : "C-" + c.id.toString()}${c.mobile.isNotEmpty ? " • 📞 " + c.mobile : ""}',
+                                                      style: const TextStyle(color: AppColors.textMutedDark, fontSize: 11),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+
+                                              // 3. Papers Badges
+                                              Expanded(
+                                                flex: 3,
+                                                child: onVacation
+                                                    ? Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                        decoration: BoxDecoration(
+                                                          color: AppColors.danger.withOpacity(0.2),
+                                                          borderRadius: BorderRadius.circular(4),
+                                                        ),
+                                                        child: const Text('🌴 રજા પર છે', style: TextStyle(color: AppColors.dangerLight, fontSize: 11, fontWeight: FontWeight.bold)),
+                                                      )
+                                                    : Wrap(
+                                                        spacing: 4,
+                                                        runSpacing: 4,
+                                                        children: todayPapers.isEmpty
+                                                            ? [const Text('-', style: TextStyle(color: AppColors.textMutedDark))]
+                                                            : todayPapers.map((p) {
+                                                                return Container(
+                                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                                  decoration: BoxDecoration(
+                                                                    color: AppColors.primaryTeal.withOpacity(0.18),
+                                                                    borderRadius: BorderRadius.circular(4),
+                                                                    border: Border.all(color: AppColors.primaryTeal.withOpacity(0.35)),
+                                                                  ),
+                                                                  child: Text(
+                                                                    p!.toUpperCase(),
+                                                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.accentCyan),
+                                                                  ),
+                                                                );
+                                                              }).toList(),
+                                                      ),
+                                              ),
+
+                                              // 4. Address
+                                              Expanded(
+                                                flex: 4,
+                                                child: Text(
+                                                  c.address.isNotEmpty ? c.address : (c.societyShort.isNotEmpty ? c.societyShort : '-'),
+                                                  style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+
+                                              // 5. Delivery Status (Instant toggle)
+                                              SizedBox(
+                                                width: 130,
+                                                child: Center(
+                                                  child: InkWell(
+                                                    onTap: onVacation
+                                                        ? null
+                                                        : () {
+                                                            final newStatus = isDelivered ? 'undelivered' : 'delivered';
+                                                            db.setDeliveryStatus(dateStr, c.id, newStatus);
+                                                            notifyDbChanged(ref);
+                                                            if (db.storageMode == 'cloud') {
+                                                              CloudSyncService.instance.syncToCloud(db);
+                                                            }
+                                                            setState(() {});
+                                                          },
+                                                    borderRadius: BorderRadius.circular(20),
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                      decoration: BoxDecoration(
+                                                        color: isDelivered
+                                                            ? const Color(0xFF1B4D3E).withOpacity(0.7)
+                                                            : AppColors.surfaceDark,
+                                                        borderRadius: BorderRadius.circular(20),
+                                                        border: Border.all(
+                                                          color: isDelivered ? AppColors.successGreen : AppColors.borderDark,
+                                                        ),
+                                                      ),
+                                                      child: Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                            isDelivered ? Icons.check : Icons.radio_button_unchecked,
+                                                            size: 14,
+                                                            color: isDelivered ? AppColors.successLight : AppColors.textMutedDark,
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            isDelivered ? 'આપી દીધું' : 'બાકી',
+                                                            style: TextStyle(
+                                                              color: isDelivered ? AppColors.successLight : AppColors.textSecondaryDark,
+                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: 11,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+
+                                              // 6. Actions (🌴 રજા Quick Button)
+                                              SizedBox(
+                                                width: 90,
+                                                child: Center(
+                                                  child: OutlinedButton.icon(
+                                                    style: OutlinedButton.styleFrom(
+                                                      side: const BorderSide(color: AppColors.accentGold, width: 0.8),
+                                                      foregroundColor: AppColors.accentGold,
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      minimumSize: Size.zero,
+                                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                    ),
+                                                    onPressed: () => _openQuickVacationDialog(c),
+                                                    icon: const Icon(Icons.beach_access, size: 13),
+                                                    label: const Text('રજા', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
             ),
           ],
         ),

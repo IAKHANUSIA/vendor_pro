@@ -228,81 +228,153 @@ class _CustomersViewState extends State<CustomersView> {
     final totalCustomers = db.customers.length;
     final activeCount = db.customers.where((c) => c.isActive).length;
     final inactiveCount = db.customers.where((c) => !c.isActive).length;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isNarrow = screenWidth < 800;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(isNarrow ? 12 : 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Header matching Image 2
-            Row(
-              children: [
-                const Icon(Icons.people_alt_outlined, color: AppColors.accentCyan, size: 24),
-                const SizedBox(width: 8),
-                const Text(
-                  'ગ્રાહક માસ્ટર',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1976D2).withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF1976D2).withOpacity(0.5)),
+            // Top Header matching Image 2 (Adaptive)
+            if (isNarrow)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.people_alt_outlined, color: AppColors.accentCyan, size: 22),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'ગ્રાહક માસ્ટર',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1976D2).withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF1976D2).withOpacity(0.5)),
+                        ),
+                        child: Text(
+                          '$totalCustomers ગ્રાહકો',
+                          style: const TextStyle(color: Color(0xFF64B5F6), fontWeight: FontWeight.bold, fontSize: 11),
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Text(
-                    '$totalCustomers ગ્રાહકો',
-                    style: const TextStyle(color: Color(0xFF64B5F6), fontWeight: FontWeight.bold, fontSize: 12),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Color(0xFF2A364F)),
+                            backgroundColor: const Color(0xFF141A28),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () => _openRouteOrderDialog(_selectedRouteFilter),
+                          icon: const Icon(Icons.shuffle, size: 15, color: Color(0xFF42A5F5)),
+                          label: const Text('લાઇન ક્રમ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2196F3),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () => _openCustomerDialog(),
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('નવા ગ્રાહક', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const Spacer(),
-                // Reorder Button matching Image 2
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Color(0xFF2A364F)),
-                    backgroundColor: const Color(0xFF141A28),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  const Icon(Icons.people_alt_outlined, color: AppColors.accentCyan, size: 24),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'ગ્રાહક માસ્ટર',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
-                  onPressed: () => _openRouteOrderDialog(_selectedRouteFilter),
-                  icon: const Icon(Icons.shuffle, size: 16, color: Color(0xFF42A5F5)),
-                  label: const Text('લાઇન ક્રમ ગોઠવો', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                ),
-                const SizedBox(width: 12),
-                // Add Customer Button matching Image 2
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2196F3),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1976D2).withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF1976D2).withOpacity(0.5)),
+                    ),
+                    child: Text(
+                      '$totalCustomers ગ્રાહકો',
+                      style: const TextStyle(color: Color(0xFF64B5F6), fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
                   ),
-                  onPressed: () => _openCustomerDialog(),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('નવા ગ્રાહકની નોંધણી', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                  const Spacer(),
+                  // Reorder Button
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFF2A364F)),
+                      backgroundColor: const Color(0xFF141A28),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () => _openRouteOrderDialog(_selectedRouteFilter),
+                    icon: const Icon(Icons.shuffle, size: 16, color: Color(0xFF42A5F5)),
+                    label: const Text('લાઇન ક્રમ ગોઠવો', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
+                  const SizedBox(width: 12),
+                  // Add Customer Button
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2196F3),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () => _openCustomerDialog(),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('નવા ગ્રાહકની નોંધણી', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 14),
 
-            // Filter Bar matching Image 2
-            Row(
+            // Filter Bar with Wrap for responsiveness
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 // Status Filter Pills
-                _buildStatusChip('all', 'બધા', totalCustomers, Colors.white),
-                const SizedBox(width: 8),
-                _buildStatusChip('active', 'સક્રિય', activeCount, const Color(0xFF4CAF50)),
-                const SizedBox(width: 8),
-                _buildStatusChip('inactive', 'બંધ', inactiveCount, const Color(0xFFEF5350)),
-                const SizedBox(width: 14),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildStatusChip('all', 'બધા', totalCustomers, Colors.white),
+                    const SizedBox(width: 6),
+                    _buildStatusChip('active', 'સક્રિય', activeCount, const Color(0xFF4CAF50)),
+                    const SizedBox(width: 6),
+                    _buildStatusChip('inactive', 'બંધ', inactiveCount, const Color(0xFFEF5350)),
+                  ],
+                ),
 
                 // Search Bar
                 SizedBox(
-                  width: 240,
+                  width: isNarrow ? (screenWidth - 24) : 240,
                   child: TextField(
                     controller: _searchController,
                     onChanged: (v) => setState(() => _searchQuery = v),
@@ -318,16 +390,16 @@ class _CustomersViewState extends State<CustomersView> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
 
                 // Salesman Filter Dropdown
                 SizedBox(
-                  width: 180,
+                  width: isNarrow ? ((screenWidth - 34) / 2) : 180,
                   child: DropdownButtonFormField<int?>(
                     value: _selectedSalesmanFilter,
                     dropdownColor: const Color(0xFF1A2336),
+                    isExpanded: true,
                     decoration: InputDecoration(
-                      labelText: '🚴 બધા વિતરક',
+                      labelText: '🚴 વિતરક',
                       isDense: true,
                       filled: true,
                       fillColor: const Color(0xFF141A28),
@@ -342,16 +414,16 @@ class _CustomersViewState extends State<CustomersView> {
                     onChanged: (v) => setState(() => _selectedSalesmanFilter = v),
                   ),
                 ),
-                const SizedBox(width: 12),
 
                 // Collection Man Filter Dropdown
                 SizedBox(
-                  width: 180,
+                  width: isNarrow ? ((screenWidth - 34) / 2) : 180,
                   child: DropdownButtonFormField<int?>(
                     value: _selectedCollectionManFilter,
                     dropdownColor: const Color(0xFF1A2336),
+                    isExpanded: true,
                     decoration: InputDecoration(
-                      labelText: '💼 બધા ઉઘરાણી મેન',
+                      labelText: '💼 ઉઘરાણી મેન',
                       isDense: true,
                       filled: true,
                       fillColor: const Color(0xFF141A28),
@@ -368,9 +440,9 @@ class _CustomersViewState extends State<CustomersView> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-            // Table Container matching Image 2
+            // Customer List / Table Container (Adaptive)
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
@@ -386,280 +458,503 @@ class _CustomersViewState extends State<CustomersView> {
                           style: TextStyle(color: Color(0xFF78909C), fontSize: 16),
                         ),
                       )
-                    : Column(
-                        children: [
-                          // Table Header matching Image 2
-                          Container(
-                            color: const Color(0xFF172033),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            child: Row(
-                              children: const [
-                                SizedBox(width: 60, child: Text('ગ્રાહક નં.', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                                SizedBox(width: 55, child: Text('ડિલિવરી\nક્રમ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 11))),
-                                SizedBox(width: 55, child: Text('ઉઘરાણી\nક્રમ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 11))),
-                                Expanded(flex: 3, child: Text('ગ્રાહકનું નામ', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                                Expanded(flex: 3, child: Text('ડિલિવરી લાઇન', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                                Expanded(flex: 3, child: Text('ચાલુ પેપર્સ (સબસ્ક્રિપ્શન)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                                SizedBox(width: 75, child: Text('બિલિંગ\nપ્રકાર', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 11))),
-                                SizedBox(width: 95, child: Text('મોબાઈલ નંબર', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                                SizedBox(width: 70, child: Text('બાકી રકમ (₹)', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 11))),
-                                SizedBox(width: 75, child: Text('સ્થિતિ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                                SizedBox(width: 90, child: Text('ક્રિયાઓ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                              ],
-                            ),
-                          ),
-                          const Divider(height: 1, color: Color(0xFF222F46)),
+                    : isNarrow
+                        // Mobile Card List Layout (Clean, Responsive, No Overflows!)
+                        ? ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          itemCount: customers.length,
+                          itemBuilder: (ctx, index) {
+                            final c = customers[index];
+                            final route = db.routes.cast<DeliveryRoute?>().firstWhere((r) => r?.id == c.routeId, orElse: () => null);
+                            final salesman = db.salesmen.cast<Salesman?>().firstWhere((s) => s?.id == route?.salesmanId, orElse: () => null);
+                            final collectionMan = db.collectionMen.cast<CollectionMan?>().firstWhere((cm) => cm?.id == route?.collectionManId, orElse: () => null);
+                            final subPapers = c.subscriptionItemIds
+                                .map((id) => db.items.cast<Item?>().firstWhere((i) => i?.id == id, orElse: () => null)?.name)
+                                .where((n) => n != null)
+                                .cast<String>()
+                                .toList();
+                            return _buildMobileCustomerCard(c, route, salesman, collectionMan, subPapers);
+                          },
+                        )
+                        // Desktop & Tablet Table Layout (Wrapped with Horizontal Scroll)
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: 1050,
+                              child: Column(
+                                children: [
+                                  // Table Header matching Image 2
+                                  Container(
+                                    color: const Color(0xFF172033),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    child: Row(
+                                      children: const [
+                                        SizedBox(width: 60, child: Text('ગ્રાહક નં.', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                                        SizedBox(width: 55, child: Text('ડિલિવરી\nક્રમ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 11))),
+                                        SizedBox(width: 55, child: Text('ઉઘરાણી\nક્રમ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 11))),
+                                        Expanded(flex: 3, child: Text('ગ્રાહકનું નામ', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                                        Expanded(flex: 3, child: Text('ડિલિવરી લાઇન', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                                        Expanded(flex: 3, child: Text('ચાલુ પેપર્સ (સબસ્ક્રિપ્શન)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                                        SizedBox(width: 75, child: Text('બિલિંગ\nપ્રકાર', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 11))),
+                                        SizedBox(width: 95, child: Text('મોબાઈલ નંબર', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                                        SizedBox(width: 70, child: Text('બાકી રકમ (₹)', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 11))),
+                                        SizedBox(width: 75, child: Text('સ્થિતિ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                                        SizedBox(width: 90, child: Text('ક્રિયાઓ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                                      ],
+                                    ),
+                                  ),
+                                  const Divider(height: 1, color: Color(0xFF222F46)),
 
-                          // Table Body matching Image 2
-                          Expanded(
-                            child: ListView.separated(
-                              itemCount: customers.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFF1E283C)),
-                              itemBuilder: (ctx, index) {
-                                final c = customers[index];
-                                final route = db.routes.cast<DeliveryRoute?>().firstWhere((r) => r?.id == c.routeId, orElse: () => null);
-                                final salesman = db.salesmen.cast<Salesman?>().firstWhere((s) => s?.id == route?.salesmanId, orElse: () => null);
-                                final collectionMan = db.collectionMen.cast<CollectionMan?>().firstWhere((cm) => cm?.id == route?.collectionManId, orElse: () => null);
+                                  // Table Body matching Image 2
+                                  Expanded(
+                                    child: ListView.separated(
+                                      itemCount: customers.length,
+                                      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFF1E283C)),
+                                      itemBuilder: (ctx, index) {
+                                        final c = customers[index];
+                                        final route = db.routes.cast<DeliveryRoute?>().firstWhere((r) => r?.id == c.routeId, orElse: () => null);
+                                        final salesman = db.salesmen.cast<Salesman?>().firstWhere((s) => s?.id == route?.salesmanId, orElse: () => null);
+                                        final collectionMan = db.collectionMen.cast<CollectionMan?>().firstWhere((cm) => cm?.id == route?.collectionManId, orElse: () => null);
 
-                                final subPapers = c.subscriptionItemIds
-                                    .map((id) => db.items.cast<Item?>().firstWhere((i) => i?.id == id, orElse: () => null)?.name)
-                                    .where((n) => n != null)
-                                    .toList();
+                                        final subPapers = c.subscriptionItemIds
+                                            .map((id) => db.items.cast<Item?>().firstWhere((i) => i?.id == id, orElse: () => null)?.name)
+                                            .where((n) => n != null)
+                                            .toList();
 
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                  color: index.isEven ? Colors.transparent : const Color(0xFF161E2E).withOpacity(0.5),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      // 1. Cust No
-                                      SizedBox(
-                                        width: 60,
-                                        child: Text(
-                                          '#${c.custNo.isNotEmpty ? c.custNo : c.code}',
-                                          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF42A5F5), fontSize: 13),
-                                        ),
-                                      ),
-
-                                      // 2. Delivery Sequence
-                                      SizedBox(
-                                        width: 55,
-                                        child: Text(
-                                          c.sequenceNo,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                                        ),
-                                      ),
-
-                                      // 3. Collection Sequence
-                                      SizedBox(
-                                        width: 55,
-                                        child: Text(
-                                          '${c.collectionSequence}',
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(color: Color(0xFFFFB74D), fontWeight: FontWeight.bold, fontSize: 13),
-                                        ),
-                                      ),
-
-                                      // 4. Customer Name & Address
-                                      Expanded(
-                                        flex: 3,
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              c.name,
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'C-${c.code} • ${c.address.isNotEmpty ? c.address : (c.societyShort.isNotEmpty ? c.societyShort : "")}',
-                                              style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE)),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      // 5. Route Line & Staff Info matching Image 2
-                                      Expanded(
-                                        flex: 3,
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFF332A15),
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.4)),
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                          color: index.isEven ? Colors.transparent : const Color(0xFF161E2E).withOpacity(0.5),
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                            children: [
+                                              // 1. Cust No
+                                              SizedBox(
+                                                width: 60,
+                                                child: Text(
+                                                  '#${c.custNo.isNotEmpty ? c.custNo : c.code}',
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF42A5F5), fontSize: 13),
+                                                ),
                                               ),
-                                              child: Text(
-                                                route != null ? '${route.name} (${route.code})' : 'કોઈ લાઇન નથી',
-                                                style: const TextStyle(color: Color(0xFFFFD54F), fontSize: 11, fontWeight: FontWeight.w600),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
+
+                                              // 2. Delivery Sequence
+                                              SizedBox(
+                                                width: 55,
+                                                child: Text(
+                                                  c.sequenceNo,
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(height: 3),
-                                            Text(
-                                              '🚴 ${salesman?.name ?? "-"}   💼 ${collectionMan?.name ?? "-"}',
-                                              style: const TextStyle(fontSize: 10, color: Color(0xFFB0BEC5)),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
 
-                                      // 6. Subscribed Papers
-                                      Expanded(
-                                        flex: 3,
-                                        child: Text(
-                                          subPapers.isNotEmpty ? subPapers.join(', ') : '-',
-                                          style: const TextStyle(fontSize: 12, color: Color(0xFFCFD8DC)),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-
-                                      // 7. Billing Type
-                                      SizedBox(
-                                        width: 75,
-                                        child: Center(
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF102A45),
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
-                                            child: Text(
-                                              c.billingType == 'fixed' ? 'ફિક્સ' : 'દૈનિક',
-                                              style: const TextStyle(color: Color(0xFF64B5F6), fontSize: 11, fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                      // 8. Mobile Number
-                                      SizedBox(
-                                        width: 95,
-                                        child: Text(
-                                          c.mobile.isNotEmpty ? '📞 ${c.mobile}' : '-',
-                                          style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE)),
-                                        ),
-                                      ),
-
-                                      // 9. Balance
-                                      SizedBox(
-                                        width: 70,
-                                        child: Text(
-                                          '₹${c.currentBalance.toStringAsFixed(0)}',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: c.currentBalance > 0 ? const Color(0xFFFF5252) : const Color(0xFF81C784),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-
-                                      // 10. Status Pill matching Image 2
-                                      SizedBox(
-                                        width: 75,
-                                        child: Center(
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: c.isActive ? const Color(0xFF1B3830) : const Color(0xFF381E24),
-                                              borderRadius: BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: c.isActive ? const Color(0xFF4CAF50).withOpacity(0.5) : const Color(0xFFEF5350).withOpacity(0.5),
+                                              // 3. Collection Sequence
+                                              SizedBox(
+                                                width: 55,
+                                                child: Text(
+                                                  '${c.collectionSequence}',
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(color: Color(0xFFFFB74D), fontWeight: FontWeight.bold, fontSize: 13),
+                                                ),
                                               ),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(Icons.circle, size: 8, color: c.isActive ? const Color(0xFF4CAF50) : const Color(0xFFEF5350)),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  c.isActive ? 'સક્રિય' : 'બંધ',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color: c.isActive ? const Color(0xFF81C784) : const Color(0xFFE57373),
-                                                    fontWeight: FontWeight.bold,
+
+                                              // 4. Customer Name & Address
+                                              Expanded(
+                                                flex: 3,
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      c.name,
+                                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      'C-${c.code} • ${c.address.isNotEmpty ? c.address : (c.societyShort.isNotEmpty ? c.societyShort : "")}',
+                                                      style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE)),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+
+                                              // 5. Route Line & Staff Info
+                                              Expanded(
+                                                flex: 3,
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFF332A15),
+                                                        borderRadius: BorderRadius.circular(12),
+                                                        border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.4)),
+                                                      ),
+                                                      child: Text(
+                                                        route != null ? '${route.name} (${route.code})' : 'કોઈ લાઇન નથી',
+                                                        style: const TextStyle(color: Color(0xFFFFD54F), fontSize: 11, fontWeight: FontWeight.w600),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 3),
+                                                    Text(
+                                                      '🚴 ${salesman?.name ?? "-"}   💼 ${collectionMan?.name ?? "-"}',
+                                                      style: const TextStyle(fontSize: 10, color: Color(0xFFB0BEC5)),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+
+                                              // 6. Subscribed Papers
+                                              Expanded(
+                                                flex: 3,
+                                                child: Text(
+                                                  subPapers.isNotEmpty ? subPapers.join(', ') : '-',
+                                                  style: const TextStyle(fontSize: 12, color: Color(0xFFCFD8DC)),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+
+                                              // 7. Billing Type
+                                              SizedBox(
+                                                width: 75,
+                                                child: Center(
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFF102A45),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                    child: Text(
+                                                      c.billingType == 'fixed' ? 'ફિક્સ' : 'દૈનિક',
+                                                      style: const TextStyle(color: Color(0xFF64B5F6), fontSize: 11, fontWeight: FontWeight.bold),
+                                                    ),
                                                   ),
                                                 ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                      // 11. Actions
-                                      SizedBox(
-                                        width: 90,
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            // WhatsApp Action
-                                            if (c.mobile.isNotEmpty)
-                                              IconButton(
-                                                icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF25D366), size: 16),
-                                                splashRadius: 14,
-                                                padding: EdgeInsets.zero,
-                                                constraints: const BoxConstraints(),
-                                                onPressed: () {
-                                                  final mob = c.whatsapp.isNotEmpty ? c.whatsapp : c.mobile;
-                                                  final url = 'https://wa.me/91$mob';
-                                                  launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-                                                },
-                                                tooltip: 'WhatsApp',
                                               ),
-                                            const SizedBox(width: 6),
-                                            // Edit Action
-                                            IconButton(
-                                              icon: const Icon(Icons.edit_outlined, color: Color(0xFFFFA726), size: 16),
-                                              splashRadius: 14,
-                                              padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(),
-                                              onPressed: () => _openCustomerDialog(c),
-                                              tooltip: 'સુધારો (Edit)',
-                                            ),
-                                            const SizedBox(width: 6),
-                                            // Vacation / Leave Action
-                                            IconButton(
-                                              icon: const Icon(Icons.beach_access, color: Color(0xFF4FC3F7), size: 16),
-                                              splashRadius: 14,
-                                              padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(),
-                                              onPressed: () => _openQuickVacationDialog(c),
-                                              tooltip: 'રજા નોંધો (Leave)',
-                                            ),
-                                            const SizedBox(width: 6),
-                                            // Delete Action
-                                            IconButton(
-                                              icon: const Icon(Icons.delete_outline, color: Color(0xFFEF5350), size: 16),
-                                              splashRadius: 14,
-                                              padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(),
-                                              onPressed: () => _deleteCustomer(c),
-                                              tooltip: 'હટાવો (Delete)',
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
+
+                                              // 8. Mobile Number
+                                              SizedBox(
+                                                width: 95,
+                                                child: Text(
+                                                  c.mobile.isNotEmpty ? '📞 ${c.mobile}' : '-',
+                                                  style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE)),
+                                                ),
+                                              ),
+
+                                              // 9. Balance
+                                              SizedBox(
+                                                width: 70,
+                                                child: Text(
+                                                  '₹${c.currentBalance.toStringAsFixed(0)}',
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    color: c.currentBalance > 0 ? const Color(0xFFFF5252) : const Color(0xFF81C784),
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ),
+
+                                              // 10. Status Pill
+                                              SizedBox(
+                                                width: 75,
+                                                child: Center(
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: c.isActive ? const Color(0xFF1B3830) : const Color(0xFF381E24),
+                                                      borderRadius: BorderRadius.circular(12),
+                                                      border: Border.all(
+                                                        color: c.isActive ? const Color(0xFF4CAF50).withOpacity(0.5) : const Color(0xFFEF5350).withOpacity(0.5),
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(Icons.circle, size: 8, color: c.isActive ? const Color(0xFF4CAF50) : const Color(0xFFEF5350)),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          c.isActive ? 'સક્રિય' : 'બંધ',
+                                                          style: TextStyle(
+                                                            fontSize: 11,
+                                                            color: c.isActive ? const Color(0xFF81C784) : const Color(0xFFE57373),
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+
+                                              // 11. Actions
+                                              SizedBox(
+                                                width: 90,
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    // WhatsApp Action
+                                                    if (c.mobile.isNotEmpty)
+                                                      IconButton(
+                                                        icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF25D366), size: 16),
+                                                        splashRadius: 14,
+                                                        padding: EdgeInsets.zero,
+                                                        constraints: const BoxConstraints(),
+                                                        onPressed: () {
+                                                          final mob = c.whatsapp.isNotEmpty ? c.whatsapp : c.mobile;
+                                                          final url = 'https://wa.me/91$mob';
+                                                          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                                                        },
+                                                        tooltip: 'WhatsApp',
+                                                      ),
+                                                    const SizedBox(width: 6),
+                                                    // Edit Action
+                                                    IconButton(
+                                                      icon: const Icon(Icons.edit_outlined, color: Color(0xFFFFA726), size: 16),
+                                                      splashRadius: 14,
+                                                      padding: EdgeInsets.zero,
+                                                      constraints: const BoxConstraints(),
+                                                      onPressed: () => _openCustomerDialog(c),
+                                                      tooltip: 'સુધારો (Edit)',
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    // Vacation Action
+                                                    IconButton(
+                                                      icon: const Icon(Icons.beach_access, color: Color(0xFF4FC3F7), size: 16),
+                                                      splashRadius: 14,
+                                                      padding: EdgeInsets.zero,
+                                                      constraints: const BoxConstraints(),
+                                                      onPressed: () => _openQuickVacationDialog(c),
+                                                      tooltip: 'રજા નોંધો (Leave)',
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    // Delete Action
+                                                    IconButton(
+                                                      icon: const Icon(Icons.delete_outline, color: Color(0xFFEF5350), size: 16),
+                                                      splashRadius: 14,
+                                                      padding: EdgeInsets.zero,
+                                                      constraints: const BoxConstraints(),
+                                                      onPressed: () => _deleteCustomer(c),
+                                                      tooltip: 'હટાવો (Delete)',
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
-                                );
-                              },
+                                ],
+                              ),
                             ),
                           ),
-                        ],
-                      ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------
+  // Mobile Customer Card Widget (Touch-friendly, Zero Overflow)
+  // -------------------------------------------------------------
+  Widget _buildMobileCustomerCard(Customer c, DeliveryRoute? route, Salesman? salesman, CollectionMan? collectionMan, List<String> subPapers) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161E2E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF222F46)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Row: Code/No + Route Badge + Balance
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1976D2).withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '#${c.custNo.isNotEmpty ? c.custNo : c.code}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF42A5F5), fontSize: 12),
+                    ),
+                  ),
+                  if (c.sequenceNo.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text('ક્રમ: ${c.sequenceNo}', style: const TextStyle(fontSize: 10, color: Colors.white70)),
+                    ),
+                  ],
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF332A15),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.4)),
+                    ),
+                    child: Text(
+                      route != null ? route.name : 'કોઈ લાઇન નથી',
+                      style: const TextStyle(color: Color(0xFFFFD54F), fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              // Balance Amount Pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (c.currentBalance > 0 ? const Color(0xFFFF5252) : const Color(0xFF4CAF50)).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: (c.currentBalance > 0 ? const Color(0xFFFF5252) : const Color(0xFF4CAF50)).withOpacity(0.4),
+                  ),
+                ),
+                child: Text(
+                  'બાકી: ₹${c.currentBalance.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: c.currentBalance > 0 ? const Color(0xFFFF5252) : const Color(0xFF81C784),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Customer Name & Society
+          Text(
+            c.name,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+          ),
+          if (c.address.isNotEmpty || c.societyShort.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              '📍 ${c.address.isNotEmpty ? c.address : c.societyShort}',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF90A4AE)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          const SizedBox(height: 6),
+
+          // Subscribed papers
+          if (subPapers.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.newspaper, size: 13, color: AppColors.accentCyan),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      subPapers.join(', '),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFFCFD8DC)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Staff info
+          if (salesman != null || collectionMan != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                '🚴 ${salesman?.name ?? "-"}   💼 ${collectionMan?.name ?? "-"}',
+                style: const TextStyle(fontSize: 10, color: Color(0xFF78909C)),
+              ),
+            ),
+
+          const Divider(height: 12, color: Color(0xFF222F46)),
+
+          // Bottom Actions Bar
+          Row(
+            children: [
+              // Status Indicator
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.circle, size: 7, color: c.isActive ? const Color(0xFF4CAF50) : const Color(0xFFEF5350)),
+                  const SizedBox(width: 4),
+                  Text(
+                    c.isActive ? 'સક્રિય' : 'બંધ',
+                    style: TextStyle(fontSize: 11, color: c.isActive ? const Color(0xFF81C784) : const Color(0xFFE57373)),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              // Phone Call
+              if (c.mobile.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.call_outlined, color: Color(0xFF64B5F6), size: 18),
+                  onPressed: () {
+                    launchUrl(Uri.parse('tel:${c.mobile}'), mode: LaunchMode.externalApplication);
+                  },
+                  tooltip: 'કૉલ કરો',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                ),
+              // WhatsApp
+              if (c.mobile.isNotEmpty || c.whatsapp.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF25D366), size: 18),
+                  onPressed: () {
+                    final mob = c.whatsapp.isNotEmpty ? c.whatsapp : c.mobile;
+                    launchUrl(Uri.parse('https://wa.me/91$mob'), mode: LaunchMode.externalApplication);
+                  },
+                  tooltip: 'WhatsApp',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                ),
+              // Vacation
+              IconButton(
+                icon: const Icon(Icons.beach_access, color: Color(0xFF4FC3F7), size: 18),
+                onPressed: () => _openQuickVacationDialog(c),
+                tooltip: 'રજા નોંધો',
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+              ),
+              // Edit
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, color: Color(0xFFFFA726), size: 18),
+                onPressed: () => _openCustomerDialog(c),
+                tooltip: 'સુધારો',
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+              ),
+              // Delete
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Color(0xFFEF5350), size: 18),
+                onPressed: () => _deleteCustomer(c),
+                tooltip: 'હટાવો',
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -858,9 +1153,8 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Container(
-        width: 780,
-        constraints: const BoxConstraints(maxHeight: 820),
-        padding: const EdgeInsets.all(22),
+        constraints: const BoxConstraints(maxWidth: 780, maxHeight: 820),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
@@ -870,26 +1164,31 @@ class _CustomerFormDialogState extends State<_CustomerFormDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF102A45),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF1E88E5).withOpacity(0.5)),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF102A45),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF1E88E5).withOpacity(0.5)),
+                          ),
+                          child: Text(
+                            _codeCtrl.text.isNotEmpty ? '#${_codeCtrl.text}' : 'નવો ગ્રાહક',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF64B5F6)),
+                          ),
                         ),
-                        child: Text(
-                          _codeCtrl.text.isNotEmpty ? '#${_codeCtrl.text}' : 'નવો ગ્રાહક',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF64B5F6)),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            widget.customer == null ? 'નવા ગ્રાહકની નોંધણી' : 'ગ્રાહકની વિગત બદલો',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        widget.customer == null ? 'નવા ગ્રાહકની નોંધણી' : 'ગ્રાહકની વિગત બદલો',
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white70, size: 20),

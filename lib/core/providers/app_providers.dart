@@ -35,6 +35,7 @@ class AuthSession {
   bool get isAdmin => role == AppRole.admin;
   bool get isSalesman => role == AppRole.salesman;
   bool get isCollection => role == AppRole.collection;
+  bool get isDualRole => activeSalesman != null && activeCollectionMan != null;
 
   String get displayName {
     switch (role) {
@@ -78,12 +79,28 @@ class AuthSessionNotifier extends StateNotifier<AuthSession> {
     state = const AuthSession(role: AppRole.admin);
   }
 
-  void setSalesman(Salesman s) {
-    state = AuthSession(role: AppRole.salesman, activeSalesman: s);
+  void setSalesman(Salesman s, [CollectionMan? companionCollection]) {
+    state = AuthSession(
+      role: AppRole.salesman,
+      activeSalesman: s,
+      activeCollectionMan: companionCollection ?? state.activeCollectionMan,
+    );
   }
 
-  void setCollection(CollectionMan c) {
-    state = AuthSession(role: AppRole.collection, activeCollectionMan: c);
+  void setCollection(CollectionMan c, [Salesman? companionSalesman]) {
+    state = AuthSession(
+      role: AppRole.collection,
+      activeCollectionMan: c,
+      activeSalesman: companionSalesman ?? state.activeSalesman,
+    );
+  }
+
+  void toggleDualRole() {
+    if (state.isSalesman && state.activeCollectionMan != null) {
+      state = state.copyWith(role: AppRole.collection);
+    } else if (state.isCollection && state.activeSalesman != null) {
+      state = state.copyWith(role: AppRole.salesman);
+    }
   }
 }
 

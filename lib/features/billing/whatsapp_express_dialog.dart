@@ -198,8 +198,10 @@ class _WhatsAppExpressDialogState extends ConsumerState<WhatsAppExpressDialog> {
       ),
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Container(
-        width: 1000,
-        height: 720,
+        constraints: BoxConstraints(
+          maxWidth: 1000,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
         decoration: BoxDecoration(
           color: AppColors.bgDark,
           borderRadius: BorderRadius.circular(16),
@@ -545,7 +547,7 @@ class _WhatsAppExpressDialogState extends ConsumerState<WhatsAppExpressDialog> {
                                     ],
                                   ),
                                 ),
-                                const Spacer(),
+                                const SizedBox(height: 14),
 
                                 // Big Send Action Button
                                 ElevatedButton.icon(

@@ -118,8 +118,8 @@ class _DynamicUpiDialogState extends State<DynamicUpiDialog> {
         side: const BorderSide(color: AppColors.cardBorderDark),
       ),
       contentPadding: const EdgeInsets.all(24),
-      content: SizedBox(
-        width: 420,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,

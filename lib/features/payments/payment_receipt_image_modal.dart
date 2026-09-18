@@ -135,7 +135,7 @@ ${widget.payment.notes.isNotEmpty ? "નોંધ: ${widget.payment.notes}\n" : 
             children: [
               // Top Action Bar
               Container(
-                width: 380,
+                constraints: const BoxConstraints(maxWidth: 380),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: AppColors.cardDark,
@@ -179,21 +179,22 @@ ${widget.payment.notes.isNotEmpty ? "નોંધ: ${widget.payment.notes}\n" : 
 
               // Bottom Action Buttons
               Container(
-                width: 380,
+                constraints: const BoxConstraints(maxWidth: 380),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: AppColors.cardDark,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.cardBorderDark),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text('બંધ કરો', style: TextStyle(color: AppColors.textMutedDark)),
                     ),
-                    const SizedBox(width: 8),
                     ElevatedButton.icon(
                       onPressed: _isExporting ? null : _downloadImage,
                       icon: _isExporting 
@@ -202,7 +203,6 @@ ${widget.payment.notes.isNotEmpty ? "નોંધ: ${widget.payment.notes}\n" : 
                       label: const Text('📸 ઈમેજ ડાઉનલોડ', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
                       style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentGold),
                     ),
-                    const SizedBox(width: 8),
                     ElevatedButton.icon(
                       onPressed: _sendWhatsApp,
                       icon: const Icon(Icons.chat, size: 15),

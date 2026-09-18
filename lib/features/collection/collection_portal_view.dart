@@ -253,16 +253,19 @@ class _CollectionPortalViewState extends ConsumerState<CollectionPortalView> {
 
     final totalPendingAmt = pendingCustomers.fold(0.0, (sum, c) => sum + c.currentBalance);
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isNarrow = screenWidth < 600;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isNarrow ? 10 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header Stats Banner
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(isNarrow ? 12 : 16),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF2E1A47), Color(0xFF1E2433)],
@@ -273,37 +276,40 @@ class _CollectionPortalViewState extends ConsumerState<CollectionPortalView> {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: AppColors.purple.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.account_balance_wallet, color: AppColors.purple, size: 28),
+                    child: const Icon(Icons.account_balance_wallet, color: AppColors.purple, size: 24),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Text(
-                              isCollectionRole && activeColMan != null
-                                  ? '💼 ${activeColMan.name} - ઉઘરાણી પોર્ટલ'
-                                  : '💼 ઉઘરાણી માસ્ટર અને એજન્ટ કલેક્શન પોર્ટલ',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                            Flexible(
+                              child: Text(
+                                isCollectionRole && activeColMan != null
+                                    ? '💼 ${activeColMan.name} - ઉઘરાણી'
+                                    : '💼 ઉઘરાણી માસ્ટર',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                             if (isCollectionRole) ...[
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: AppColors.accentGold.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text(
-                                  'કલેક્શન સ્ટાફ મોડ',
-                                  style: TextStyle(fontSize: 10, color: AppColors.accentGold, fontWeight: FontWeight.bold),
+                                  'સ્ટાફ મોડ',
+                                  style: TextStyle(fontSize: 9, color: AppColors.accentGold, fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ],
@@ -311,8 +317,8 @@ class _CollectionPortalViewState extends ConsumerState<CollectionPortalView> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'બાકી ગ્રાહકો: ${pendingCustomers.length} | કુલ વસૂલવાની બાકી રકમ: ₹${totalPendingAmt.toStringAsFixed(0)}',
-                          style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
+                          'બાકી ગ્રાહકો: ${pendingCustomers.length} | બાકી રકમ: ₹${totalPendingAmt.toStringAsFixed(0)}',
+                          style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12),
                         ),
                       ],
                     ),
@@ -320,28 +326,25 @@ class _CollectionPortalViewState extends ConsumerState<CollectionPortalView> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
-            // Filters
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: TextField(
+            // Filters (Adaptive - Stacked on narrow screens to eliminate 60px overflow)
+            if (isNarrow)
+              Column(
+                children: [
+                  TextField(
                     onChanged: (v) => setState(() => _searchQuery = v),
                     decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search, color: AppColors.textSecondaryDark),
-                      hintText: 'ગ્રાહકનું નામ, કોડ, મોબાઇલથી શોધો...',
+                      prefixIcon: Icon(Icons.search, color: AppColors.textSecondaryDark, size: 18),
+                      hintText: 'ગ્રાહક શોધો...',
                       isDense: true,
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 2,
-                  child: DropdownButtonFormField<int?>(
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<int?>(
                     value: _selectedRouteId,
                     dropdownColor: AppColors.bgCardDark,
+                    isExpanded: true,
                     decoration: const InputDecoration(isDense: true, labelText: 'લાઇન ફિલ્ટર'),
                     items: [
                       const DropdownMenuItem<int?>(value: null, child: Text('બધી લાઇન')),
@@ -349,9 +352,39 @@ class _CollectionPortalViewState extends ConsumerState<CollectionPortalView> {
                     ],
                     onChanged: (v) => setState(() => _selectedRouteId = v),
                   ),
-                ),
-              ],
-            ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextField(
+                      onChanged: (v) => setState(() => _searchQuery = v),
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search, color: AppColors.textSecondaryDark),
+                        hintText: 'ગ્રાહકનું નામ, કોડ, મોબાઇલથી શોધો...',
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<int?>(
+                      value: _selectedRouteId,
+                      dropdownColor: AppColors.bgCardDark,
+                      isExpanded: true,
+                      decoration: const InputDecoration(isDense: true, labelText: 'લાઇન ફિલ્ટર'),
+                      items: [
+                        const DropdownMenuItem<int?>(value: null, child: Text('બધી લાઇન')),
+                        ...availableRoutes.map((r) => DropdownMenuItem<int?>(value: r.id, child: Text(r.name))),
+                      ],
+                      onChanged: (v) => setState(() => _selectedRouteId = v),
+                    ),
+                  ),
+                ],
+              ),
             const SizedBox(height: 12),
 
             // Pending Collection List
@@ -373,35 +406,40 @@ class _CollectionPortalViewState extends ConsumerState<CollectionPortalView> {
                           margin: const EdgeInsets.only(bottom: 8),
                           child: Padding(
                             padding: const EdgeInsets.all(12),
-                            child: Row(
-                              children: [
-                                // Sequence Number
-                                Container(
-                                  width: 38,
-                                  height: 38,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.warning.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    c.collectionSequence.isNotEmpty ? c.collectionSequence : c.sequenceNo,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.warning, fontSize: 14),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-
-                                // Customer Info & Balance
-                                Expanded(
-                                  child: Column(
+                            child: isNarrow
+                                ? Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
-                                          Expanded(
+                                          Container(
+                                            width: 34,
+                                            height: 34,
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.warning.withOpacity(0.15),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
                                             child: Text(
-                                              c.name,
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                                              c.collectionSequence.isNotEmpty ? c.collectionSequence : c.sequenceNo,
+                                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.warning, fontSize: 13),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  c.name,
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                                                ),
+                                                if (c.code.isNotEmpty || c.mobile.isNotEmpty)
+                                                  Text(
+                                                    'C-${c.code}${c.mobile.isNotEmpty ? " • 📞 " + c.mobile : ""}',
+                                                    style: const TextStyle(color: AppColors.textMutedDark, fontSize: 11),
+                                                  ),
+                                              ],
                                             ),
                                           ),
                                           Text(
@@ -414,51 +452,142 @@ class _CollectionPortalViewState extends ConsumerState<CollectionPortalView> {
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 2),
-                                      Wrap(
-                                        spacing: 12,
+                                      if (c.address.isNotEmpty || r != null) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${r != null ? "🗺️ " + r.name + " • " : ""}📍 ${c.address}',
+                                          style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 11),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                      const Divider(height: 12, color: Color(0xFF222F46)),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
                                         children: [
-                                          if (r != null) Text('🗺️ ${r.name}', style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
-                                          if (c.mobile.isNotEmpty) Text('📞 ${c.mobile}', style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
-                                          if (c.address.isNotEmpty) Text('🏠 ${c.address}', style: const TextStyle(color: AppColors.textMutedDark, fontSize: 12)),
+                                          if (c.mobile.isNotEmpty)
+                                            IconButton(
+                                              icon: const Icon(Icons.call_outlined, color: Color(0xFF64B5F6), size: 18),
+                                              onPressed: () => launchUrl(Uri.parse('tel:${c.mobile}'), mode: LaunchMode.externalApplication),
+                                              tooltip: 'કૉલ કરો',
+                                              constraints: const BoxConstraints(),
+                                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                                            ),
+                                          IconButton(
+                                            icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF25D366), size: 18),
+                                            onPressed: () => _sendWhatsAppReminder(c),
+                                            tooltip: 'WhatsApp બિલ રિમાઇન્ડર',
+                                            constraints: const BoxConstraints(),
+                                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          IconButton(
+                                            icon: const Icon(Icons.qr_code, color: AppColors.accentCyan, size: 18),
+                                            onPressed: () => _showUpiQrDialog(c),
+                                            tooltip: 'UPI QR કોડ',
+                                            constraints: const BoxConstraints(),
+                                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppColors.successGreen,
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                            ),
+                                            onPressed: () => _openCollectDialog(c),
+                                            icon: const Icon(Icons.payments, size: 14),
+                                            label: const Text('જમા', style: TextStyle(fontSize: 12)),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      // Sequence Number
+                                      Container(
+                                        width: 38,
+                                        height: 38,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.warning.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          c.collectionSequence.isNotEmpty ? c.collectionSequence : c.sequenceNo,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.warning, fontSize: 14),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+
+                                      // Customer Info & Balance
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    c.name,
+                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '₹${c.currentBalance.toStringAsFixed(0)}',
+                                                  style: const TextStyle(
+                                                    color: AppColors.dangerLight,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Wrap(
+                                              spacing: 12,
+                                              children: [
+                                                if (r != null) Text('🗺️ ${r.name}', style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                                                if (c.mobile.isNotEmpty) Text('📞 ${c.mobile}', style: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 12)),
+                                                if (c.address.isNotEmpty) Text('🏠 ${c.address}', style: const TextStyle(color: AppColors.textMutedDark, fontSize: 12)),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      const SizedBox(width: 12),
+
+                                      // Action Buttons
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // WhatsApp Button
+                                          IconButton(
+                                            icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF25D366), size: 20),
+                                            onPressed: () => _sendWhatsAppReminder(c),
+                                            tooltip: 'WhatsApp બિલ રિમાઇન્ડર',
+                                          ),
+                                          // UPI QR Button
+                                          IconButton(
+                                            icon: const Icon(Icons.qr_code, color: AppColors.accentCyan, size: 20),
+                                            onPressed: () => _showUpiQrDialog(c),
+                                            tooltip: 'UPI QR કોડ',
+                                          ),
+                                          // Collect Cash / Online Button
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppColors.successGreen,
+                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                            ),
+                                            onPressed: () => _openCollectDialog(c),
+                                            icon: const Icon(Icons.payments, size: 16),
+                                            label: const Text('જમા'),
+                                          ),
                                         ],
                                       ),
                                     ],
                                   ),
-                                ),
-
-                                const SizedBox(width: 12),
-
-                                // Action Buttons
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // WhatsApp Button
-                                    IconButton(
-                                      icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF25D366), size: 20),
-                                      onPressed: () => _sendWhatsAppReminder(c),
-                                      tooltip: 'WhatsApp બિલ રિમાઇન્ડર',
-                                    ),
-                                    // UPI QR Button
-                                    IconButton(
-                                      icon: const Icon(Icons.qr_code, color: AppColors.accentCyan, size: 20),
-                                      onPressed: () => _showUpiQrDialog(c),
-                                      tooltip: 'UPI QR કોડ',
-                                    ),
-                                    // Collect Cash / Online Button
-                                    ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.successGreen,
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                      ),
-                                      onPressed: () => _openCollectDialog(c),
-                                      icon: const Icon(Icons.payments, size: 16),
-                                      label: const Text('જમા'),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
                           ),
                         );
                       },

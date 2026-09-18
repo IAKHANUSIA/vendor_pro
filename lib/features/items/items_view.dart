@@ -83,8 +83,8 @@ class _ItemsViewState extends State<ItemsView> {
               Text('${item.name} - ભાવ સુધારા ઇતિહાસ', style: const TextStyle(color: Colors.white, fontSize: 16)),
             ],
           ),
-          content: SizedBox(
-            width: 520,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
             child: item.rateHistory.isEmpty
                 ? const Padding(
                     padding: EdgeInsets.all(20),
@@ -690,12 +690,14 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isNarrow = MediaQuery.of(context).size.width < 650;
+
     return Dialog(
       backgroundColor: const Color(0xFF1E2638),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
-        width: 760,
+        constraints: const BoxConstraints(maxWidth: 760),
         padding: const EdgeInsets.all(22),
         child: Form(
           key: _formKey,
@@ -926,150 +928,161 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
                 ),
                 const SizedBox(height: 10),
 
-                // 2-Column 7-Day Matrix matching Image 2
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Left Column (Mon, Tue, Wed, Thu)
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF141A28),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF222F46)),
-                        ),
-                        child: Column(
-                          children: [
-                            // Header Row
-                            Row(
-                              children: const [
-                                Expanded(flex: 4, child: Text('વાર (DAY)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                                Expanded(flex: 3, child: Center(child: Text('વેચાણ (₹)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12)))),
-                                SizedBox(width: 8),
-                                Expanded(flex: 3, child: Center(child: Text('ખરીદ (₹)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12)))),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            ...['mon', 'tue', 'wed', 'thu'].map((d) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 4,
-                                      child: Text(
-                                        _dayLabels[d]!,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: _buildRateField(_saleCtrls[d]!),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      flex: 3,
-                                      child: _buildRateField(_purCtrls[d]!),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
+                // 2-Column or Stacked 7-Day Matrix matching Image 2
+                Builder(
+                  builder: (context) {
+                    final leftCol = Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF141A28),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF222F46)),
                       ),
-                    ),
-                    const SizedBox(width: 14),
-
-                    // Right Column (Fri, Sat, Sun + Note)
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF141A28),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF222F46)),
-                        ),
-                        child: Column(
-                          children: [
-                            // Header Row
-                            Row(
-                              children: const [
-                                Expanded(flex: 4, child: Text('વાર (DAY)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                                Expanded(flex: 3, child: Center(child: Text('વેચાણ (₹)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12)))),
-                                SizedBox(width: 8),
-                                Expanded(flex: 3, child: Center(child: Text('ખરીદ (₹)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12)))),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            ...['fri', 'sat'].map((d) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 4,
-                                      child: Text(
-                                        _dayLabels[d]!,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: _buildRateField(_saleCtrls[d]!),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      flex: 3,
-                                      child: _buildRateField(_purCtrls[d]!),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-                            // Sunday Row (Highlighted in Red)
-                            Padding(
+                      child: Column(
+                        children: [
+                          // Header Row
+                          Row(
+                            children: const [
+                              Expanded(flex: 4, child: Text('વાર (DAY)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                              Expanded(flex: 3, child: Center(child: Text('વેચાણ (₹)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12)))),
+                              SizedBox(width: 8),
+                              Expanded(flex: 3, child: Center(child: Text('ખરીદ (₹)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12)))),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ...['mon', 'tue', 'wed', 'thu'].map((d) {
+                            return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 4),
                               child: Row(
                                 children: [
                                   Expanded(
                                     flex: 4,
                                     child: Text(
-                                      _dayLabels['sun']!,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFEF5350), fontSize: 13),
+                                      _dayLabels[d]!,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
                                     ),
                                   ),
                                   Expanded(
                                     flex: 3,
-                                    child: _buildRateField(_saleCtrls['sun']!, isRed: true),
+                                    child: _buildRateField(_saleCtrls[d]!),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     flex: 3,
-                                    child: _buildRateField(_purCtrls['sun']!, isRed: true),
+                                    child: _buildRateField(_purCtrls[d]!),
                                   ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            // Sunday note
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.lightbulb_outline, color: Color(0xFFFFCA28), size: 14),
-                                SizedBox(width: 4),
-                                Text(
-                                  'રવિવાર વિશેષ પૂર્તિ / સ્પેશિયલ ભાવ',
-                                  style: TextStyle(fontSize: 11, color: Color(0xFFFFCA28), fontWeight: FontWeight.w600),
+                            );
+                          }),
+                        ],
+                      ),
+                    );
+
+                    final rightCol = Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF141A28),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF222F46)),
+                      ),
+                      child: Column(
+                        children: [
+                          // Header Row
+                          Row(
+                            children: const [
+                              Expanded(flex: 4, child: Text('વાર (DAY)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                              Expanded(flex: 3, child: Center(child: Text('વેચાણ (₹)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12)))),
+                              SizedBox(width: 8),
+                              Expanded(flex: 3, child: Center(child: Text('ખરીદ (₹)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12)))),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ...['fri', 'sat'].map((d) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 4,
+                                    child: Text(
+                                      _dayLabels[d]!,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 3,
+                                    child: _buildRateField(_saleCtrls[d]!),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    flex: 3,
+                                    child: _buildRateField(_purCtrls[d]!),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                          // Sunday Row (Highlighted in Red)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 4,
+                                  child: Text(
+                                    _dayLabels['sun']!,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFEF5350), fontSize: 13),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 3,
+                                  child: _buildRateField(_saleCtrls['sun']!, isRed: true),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  flex: 3,
+                                  child: _buildRateField(_purCtrls['sun']!, isRed: true),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 6),
+                          // Sunday note
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.lightbulb_outline, color: Color(0xFFFFCA28), size: 14),
+                              SizedBox(width: 4),
+                              Text(
+                                'રવિવાર વિશેષ પૂર્તિ / સ્પેશિયલ ભાવ',
+                                style: TextStyle(fontSize: 11, color: Color(0xFFFFCA28), fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    );
+
+                    if (isNarrow) {
+                      return Column(
+                        children: [
+                          leftCol,
+                          const SizedBox(height: 12),
+                          rightCol,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: leftCol),
+                        const SizedBox(width: 14),
+                        Expanded(child: rightCol),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
 

@@ -64,8 +64,8 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
           backgroundColor: const Color(0xFF1E2638),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(route == null ? '➕ નવી લાઇન ઉમેરો' : '✏️ લાઇનમાં ફેરફાર', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          content: SizedBox(
-            width: 460,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -116,7 +116,13 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                     ),
                     items: [
                       const DropdownMenuItem<int?>(value: null, child: Text('કોઈ વિતરક નહિ', style: TextStyle(color: Color(0xFF90A4AE)))),
-                      ...db.salesmen.map((s) => DropdownMenuItem<int?>(value: s.id, child: Text(s.name, style: const TextStyle(color: Colors.white)))),
+                      ...db.salesmen.map((s) => DropdownMenuItem<int?>(
+                        value: s.id,
+                        child: Text(
+                          s.isActive ? s.name : '${s.name} (❌ નોકરી છોડેલ)',
+                          style: TextStyle(color: s.isActive ? Colors.white : const Color(0xFFEF5350)),
+                        ),
+                      )),
                     ],
                     onChanged: (v) => setDlgState(() => selectedSalesmanId = v),
                   ),
@@ -135,7 +141,13 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                     ),
                     items: [
                       const DropdownMenuItem<int?>(value: null, child: Text('કોઈ ઉઘરાણીદાર નહિ', style: TextStyle(color: Color(0xFF90A4AE)))),
-                      ...db.collectionMen.map((c) => DropdownMenuItem<int?>(value: c.id, child: Text(c.name, style: const TextStyle(color: Colors.white)))),
+                      ...db.collectionMen.map((c) => DropdownMenuItem<int?>(
+                        value: c.id,
+                        child: Text(
+                          c.isActive ? c.name : '${c.name} (❌ નોકરી છોડેલ)',
+                          style: TextStyle(color: c.isActive ? Colors.white : const Color(0xFFEF5350)),
+                        ),
+                      )),
                     ],
                     onChanged: (v) => setDlgState(() => selectedCollectionManId = v),
                   ),
@@ -206,6 +218,7 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
     final salaryCtrl = TextEditingController(text: (salesman != null && salesman.salary > 0) ? salesman.salary.toStringAsFixed(0) : '');
     final notesCtrl = TextEditingController(text: salesman?.notes ?? '');
     final pinCtrl = TextEditingController(text: salesman?.pin ?? '1111');
+    String status = salesman?.status ?? 'active';
     bool obscurePin = true;
 
     showDialog(
@@ -215,8 +228,8 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
           backgroundColor: const Color(0xFF1E2638),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(salesman == null ? '➕ નવો વિતરક (Salesman) ઉમેરો' : '✏️ વિતરકમાં ફેરફાર', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          content: SizedBox(
-            width: 480,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -308,6 +321,43 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: status,
+                    dropdownColor: const Color(0xFF1E2638),
+                    decoration: InputDecoration(
+                      labelText: 'નોકરીની સ્થિતિ (Staff Status)',
+                      filled: true,
+                      fillColor: const Color(0xFF141A28),
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'active',
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 16),
+                            SizedBox(width: 8),
+                            Text('✅ સક્રિય (Active - નોકરી ચાલુ)', style: TextStyle(color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'inactive',
+                        child: Row(
+                          children: [
+                            Icon(Icons.cancel, color: Color(0xFFEF5350), size: 16),
+                            SizedBox(width: 8),
+                            Text('❌ નિષ્ક્રિય (Inactive - નોકરી છોડેલ)', style: TextStyle(color: Color(0xFFEF5350))),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setDlgState(() => status = val);
+                    },
+                  ),
                 ],
               ),
             ),
@@ -340,7 +390,7 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                   address: addrCtrl.text.trim(),
                   salary: double.tryParse(salaryCtrl.text) ?? 0.0,
                   notes: notesCtrl.text.trim(),
-                  status: salesman?.status ?? 'active',
+                  status: status,
                   pin: pinText.isEmpty ? '1111' : pinText,
                 );
                 if (salesman == null) {
@@ -369,6 +419,7 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
     final salaryCtrl = TextEditingController(text: (collectionMan != null && collectionMan.salary > 0) ? collectionMan.salary.toStringAsFixed(0) : '');
     final notesCtrl = TextEditingController(text: collectionMan?.notes ?? '');
     final pinCtrl = TextEditingController(text: collectionMan?.pin ?? '1111');
+    String status = collectionMan?.status ?? 'active';
     bool obscurePin = true;
 
     showDialog(
@@ -378,8 +429,8 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
           backgroundColor: const Color(0xFF1E2638),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(collectionMan == null ? '➕ નવો ઉઘરાણી સ્ટાફ (Collection Men) ઉમેરો' : '✏️ ઉઘરાણી સ્ટાફમાં ફેરફાર', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          content: SizedBox(
-            width: 480,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -471,6 +522,43 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: status,
+                    dropdownColor: const Color(0xFF1E2638),
+                    decoration: InputDecoration(
+                      labelText: 'નોકરીની સ્થિતિ (Staff Status)',
+                      filled: true,
+                      fillColor: const Color(0xFF141A28),
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF2A364F))),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'active',
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 16),
+                            SizedBox(width: 8),
+                            Text('✅ સક્રિય (Active - નોકરી ચાલુ)', style: TextStyle(color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'inactive',
+                        child: Row(
+                          children: [
+                            Icon(Icons.cancel, color: Color(0xFFEF5350), size: 16),
+                            SizedBox(width: 8),
+                            Text('❌ નિષ્ક્રિય (Inactive - નોકરી છોડેલ)', style: TextStyle(color: Color(0xFFEF5350))),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setDlgState(() => status = val);
+                    },
+                  ),
                 ],
               ),
             ),
@@ -503,7 +591,7 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                   address: addrCtrl.text.trim(),
                   salary: double.tryParse(salaryCtrl.text) ?? 0.0,
                   notes: notesCtrl.text.trim(),
-                  status: collectionMan?.status ?? 'active',
+                  status: status,
                   pin: pinText.isEmpty ? '1111' : pinText,
                 );
                 if (collectionMan == null) {
@@ -918,8 +1006,9 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                 Expanded(flex: 3, child: Text('વિતરકનું નામ (SALESMAN)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('મોબાઇલ નંબર', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 4, child: Text('સંભાળતી લાઇન', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                SizedBox(width: 150, child: Text('માસિક પગાર (SALARY ₹)', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                SizedBox(width: 90, child: Text('નોંધ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                SizedBox(width: 130, child: Text('માસિક પગાર (SALARY ₹)', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                SizedBox(width: 110, child: Text('સ્થિતિ (STATUS)', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                SizedBox(width: 80, child: Text('નોંધ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
                 SizedBox(width: 90, child: Text('ક્રિયા', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
               ],
             ),
@@ -948,14 +1037,18 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                         flex: 3,
                         child: Row(
                           children: [
-                            const Icon(Icons.pedal_bike, size: 15, color: Color(0xFF42A5F5)),
+                            Icon(Icons.pedal_bike, size: 15, color: s.isActive ? const Color(0xFF42A5F5) : const Color(0xFF78909C)),
                             const SizedBox(width: 8),
-                            Text(
-                              s.name.toUpperCase(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                fontSize: 13,
+                            Expanded(
+                              child: Text(
+                                s.name.toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: s.isActive ? Colors.white : const Color(0xFF90A4AE),
+                                  fontSize: 13,
+                                  decoration: s.isActive ? null : TextDecoration.lineThrough,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -968,12 +1061,12 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                         child: s.mobile.isNotEmpty
                             ? Row(
                                 children: [
-                                  const Icon(Icons.phone, size: 13, color: Color(0xFFEF5350)),
+                                  Icon(Icons.phone, size: 13, color: s.isActive ? const Color(0xFFEF5350) : const Color(0xFF78909C)),
                                   const SizedBox(width: 4),
                                   Text(
                                     s.mobile,
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: s.isActive ? Colors.white : const Color(0xFF90A4AE),
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -1023,7 +1116,7 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
 
                       // Monthly Salary matching Image 1
                       SizedBox(
-                        width: 150,
+                        width: 130,
                         child: Text(
                           s.salary > 0 ? '₹${s.salary.toStringAsFixed(0)}' : '-',
                           textAlign: TextAlign.center,
@@ -1035,9 +1128,68 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                         ),
                       ),
 
+                      // Status Toggle Chip
+                      SizedBox(
+                        width: 110,
+                        child: Center(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              setState(() {
+                                s.status = s.isActive ? 'inactive' : 'active';
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(s.isActive
+                                      ? '✅ ${s.name} ને સક્રિય કર્યા.'
+                                      : '❌ ${s.name} ને નિષ્ક્રિય (નોકરી છોડેલ) તરીકે માર્ક કર્યા.'),
+                                  backgroundColor: s.isActive ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            child: Tooltip(
+                              message: 'સ્થિતિ બદલવા ક્લિક કરો',
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: s.isActive
+                                      ? const Color(0xFF1B5E20).withOpacity(0.25)
+                                      : const Color(0xFFB71C1C).withOpacity(0.25),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: s.isActive ? const Color(0xFF4CAF50) : const Color(0xFFEF5350),
+                                    width: 1.2,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      s.isActive ? Icons.check_circle : Icons.cancel,
+                                      size: 13,
+                                      color: s.isActive ? const Color(0xFF4CAF50) : const Color(0xFFEF5350),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      s.isActive ? 'સક્રિય' : 'છોડેલ',
+                                      style: TextStyle(
+                                        color: s.isActive ? const Color(0xFF81C784) : const Color(0xFFE57373),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
                       // Notes matching Image 1
                       SizedBox(
-                        width: 90,
+                        width: 80,
                         child: Text(
                           s.notes.isNotEmpty ? s.notes : '-',
                           textAlign: TextAlign.center,
@@ -1079,8 +1231,46 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                               child: IconButton(
                                 padding: EdgeInsets.zero,
                                 icon: const Icon(Icons.delete_outline, color: Color(0xFFEF5350), size: 16),
-                                onPressed: () => setState(() => db.salesmen.removeAt(index)),
-                                tooltip: 'હટાવો (Delete)',
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (dlgCtx) => AlertDialog(
+                                      backgroundColor: const Color(0xFF1E2638),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                      title: Text('⚠️ ${s.name} - સ્ટાફ મેનેજમેન્ટ', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                      content: const Text(
+                                        'જો આ કર્મચારી નોકરી છોડી ગયા હોય, તો જૂના ડિલિવરી રેકોર્ડ્સ અને હિસાબો સાચવવા માટે "નિષ્ક્રિય (છોડેલ)" માર્ક કરવાની સલાહ આપવામાં આવે છે.\n\nતમે શું કરવા માંગો છો?',
+                                        style: TextStyle(color: Color(0xFFCFD8DC), fontSize: 13, height: 1.4),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(dlgCtx),
+                                          child: const Text('રદ કરો', style: TextStyle(color: Colors.white70)),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFA726)),
+                                          onPressed: () {
+                                            setState(() => s.status = 'inactive');
+                                            Navigator.pop(dlgCtx);
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('❌ ${s.name} ને નિષ્ક્રિય માર્ક કર્યા')),
+                                            );
+                                          },
+                                          child: const Text('નોકરી છોડેલ માર્ક કરો', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF5350)),
+                                          onPressed: () {
+                                            setState(() => db.salesmen.removeAt(index));
+                                            Navigator.pop(dlgCtx);
+                                          },
+                                          child: const Text('કાયમ હટાવો', style: TextStyle(color: Colors.white)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                tooltip: 'હટાવો અથવા નિષ્ક્રિય કરો',
                               ),
                             ),
                           ],
@@ -1132,8 +1322,9 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                 Expanded(flex: 3, child: Text('ઉઘરાણીદારનું નામ (COLLECTION MAN)', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('મોબાઇલ નંબર', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 4, child: Text('સંભાળતી લાઇન', style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                SizedBox(width: 150, child: Text('માસિક પગાર (SALARY ₹)', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
-                SizedBox(width: 90, child: Text('નોંધ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                SizedBox(width: 130, child: Text('માસિક પગાર (SALARY ₹)', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                SizedBox(width: 110, child: Text('સ્થિતિ (STATUS)', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
+                SizedBox(width: 80, child: Text('નોંધ', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
                 SizedBox(width: 90, child: Text('ક્રિયા', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF90A4AE), fontWeight: FontWeight.bold, fontSize: 12))),
               ],
             ),
@@ -1162,14 +1353,18 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                         flex: 3,
                         child: Row(
                           children: [
-                            const Icon(Icons.work_outline, size: 15, color: Color(0xFFFFA726)),
+                            Icon(Icons.work_outline, size: 15, color: c.isActive ? const Color(0xFFFFA726) : const Color(0xFF78909C)),
                             const SizedBox(width: 8),
-                            Text(
-                              c.name.toUpperCase(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                fontSize: 13,
+                            Expanded(
+                              child: Text(
+                                c.name.toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: c.isActive ? Colors.white : const Color(0xFF90A4AE),
+                                  fontSize: 13,
+                                  decoration: c.isActive ? null : TextDecoration.lineThrough,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -1182,12 +1377,12 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                         child: c.mobile.isNotEmpty
                             ? Row(
                                 children: [
-                                  const Icon(Icons.phone, size: 13, color: Color(0xFFEF5350)),
+                                  Icon(Icons.phone, size: 13, color: c.isActive ? const Color(0xFFEF5350) : const Color(0xFF78909C)),
                                   const SizedBox(width: 4),
                                   Text(
                                     c.mobile,
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: c.isActive ? Colors.white : const Color(0xFF90A4AE),
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -1237,7 +1432,7 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
 
                       // Monthly Salary
                       SizedBox(
-                        width: 150,
+                        width: 130,
                         child: Text(
                           c.salary > 0 ? '₹${c.salary.toStringAsFixed(0)}' : '-',
                           textAlign: TextAlign.center,
@@ -1249,9 +1444,68 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                         ),
                       ),
 
+                      // Status Toggle Chip
+                      SizedBox(
+                        width: 110,
+                        child: Center(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              setState(() {
+                                c.status = c.isActive ? 'inactive' : 'active';
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(c.isActive
+                                      ? '✅ ${c.name} ને સક્રિય કર્યા.'
+                                      : '❌ ${c.name} ને નિષ્ક્રિય (નોકરી છોડેલ) તરીકે માર્ક કર્યા.'),
+                                  backgroundColor: c.isActive ? const Color(0xFF2E7D32) : const Color(0xFFC62828),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            child: Tooltip(
+                              message: 'સ્થિતિ બદલવા ક્લિક કરો',
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: c.isActive
+                                      ? const Color(0xFF1B5E20).withOpacity(0.25)
+                                      : const Color(0xFFB71C1C).withOpacity(0.25),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: c.isActive ? const Color(0xFF4CAF50) : const Color(0xFFEF5350),
+                                    width: 1.2,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      c.isActive ? Icons.check_circle : Icons.cancel,
+                                      size: 13,
+                                      color: c.isActive ? const Color(0xFF4CAF50) : const Color(0xFFEF5350),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      c.isActive ? 'સક્રિય' : 'છોડેલ',
+                                      style: TextStyle(
+                                        color: c.isActive ? const Color(0xFF81C784) : const Color(0xFFE57373),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
                       // Notes
                       SizedBox(
-                        width: 90,
+                        width: 80,
                         child: Text(
                           c.notes.isNotEmpty ? c.notes : '-',
                           textAlign: TextAlign.center,
@@ -1293,8 +1547,46 @@ class _RoutesViewState extends State<RoutesView> with SingleTickerProviderStateM
                               child: IconButton(
                                 padding: EdgeInsets.zero,
                                 icon: const Icon(Icons.delete_outline, color: Color(0xFFEF5350), size: 16),
-                                onPressed: () => setState(() => db.collectionMen.removeAt(index)),
-                                tooltip: 'હટાવો (Delete)',
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (dlgCtx) => AlertDialog(
+                                      backgroundColor: const Color(0xFF1E2638),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                      title: Text('⚠️ ${c.name} - સ્ટાફ મેનેજમેન્ટ', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                      content: const Text(
+                                        'જો આ ઉઘરાણી સ્ટાફ નોકરી છોડી ગયા હોય, તો જૂની ઉઘરાણી પહોંચ અને હિસાબો સાચવવા માટે "નિષ્ક્રિય (છોડેલ)" માર્ક કરવાની સલાહ આપવામાં આવે છે.\n\nતમે શું કરવા માંગો છો?',
+                                        style: TextStyle(color: Color(0xFFCFD8DC), fontSize: 13, height: 1.4),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(dlgCtx),
+                                          child: const Text('રદ કરો', style: TextStyle(color: Colors.white70)),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFA726)),
+                                          onPressed: () {
+                                            setState(() => c.status = 'inactive');
+                                            Navigator.pop(dlgCtx);
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('❌ ${c.name} ને નિષ્ક્રિય માર્ક કર્યા')),
+                                            );
+                                          },
+                                          child: const Text('નોકરી છોડેલ માર્ક કરો', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF5350)),
+                                          onPressed: () {
+                                            setState(() => db.collectionMen.removeAt(index));
+                                            Navigator.pop(dlgCtx);
+                                          },
+                                          child: const Text('કાયમ હટાવો', style: TextStyle(color: Colors.white)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                tooltip: 'હટાવો અથવા નિષ્ક્રિય કરો',
                               ),
                             ),
                           ],

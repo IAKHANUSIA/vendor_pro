@@ -39,6 +39,7 @@ build/
 .gradle/
 
 # Windows related
+*.apk
 windows/flutter/ephemeral/
 
 # Exceptions to above rules.

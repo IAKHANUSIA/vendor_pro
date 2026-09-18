@@ -88,42 +88,39 @@ class _BillingViewState extends ConsumerState<BillingView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header with Month Selector & Action
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+            LayoutBuilder(
+              builder: (context, headerConstraints) {
+                final isHeaderNarrow = headerConstraints.maxWidth < 850;
+                final headerInfo = Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryTeal.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.receipt_long, color: AppColors.primaryTeal, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryTeal.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.receipt_long, color: AppColors.primaryTeal, size: 24),
+                          const Text(
+                            'માસિક બિલિંગ મેનેજમેન્ટ (Monthly Billing)',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5),
                           ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'માસિક બિલિંગ મેનેજમેન્ટ (Monthly Billing)',
-                                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5),
-                              ),
-                              Text(
-                                '${_monthNamesGu[_selectedMonth - 1]} $_selectedYear ના ગ્રાહક બિલો',
-                                style: const TextStyle(fontSize: 13, color: AppColors.textMutedDark),
-                              ),
-                            ],
+                          Text(
+                            '${_monthNamesGu[_selectedMonth - 1]} $_selectedYear ના ગ્રાહક બિલો',
+                            style: const TextStyle(fontSize: 13, color: AppColors.textMutedDark),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                Wrap(
+                    ),
+                  ],
+                );
+
+                final actionControls = Wrap(
                   spacing: 12,
                   runSpacing: 8,
                   children: [
@@ -224,8 +221,26 @@ class _BillingViewState extends ConsumerState<BillingView> {
                       ),
                     ),
                   ],
-                ),
-              ],
+                );
+
+                if (isHeaderNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      headerInfo,
+                      const SizedBox(height: 14),
+                      actionControls,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: headerInfo),
+                    actionControls,
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 20),
 
@@ -259,28 +274,31 @@ class _BillingViewState extends ConsumerState<BillingView> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.cardBorderDark),
               ),
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 12,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  // Search field
-                  SizedBox(
-                    width: 260,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'ગ્રાહક નામ / નંબર / બિલ નં...',
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        filled: true,
-                        fillColor: AppColors.surfaceDark,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              child: LayoutBuilder(
+                builder: (context, filterConstraints) {
+                  final isFilterNarrow = filterConstraints.maxWidth < 600;
+                  return Wrap(
+                    spacing: 16,
+                    runSpacing: 12,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      // Search field
+                      SizedBox(
+                        width: isFilterNarrow ? double.infinity : 260,
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'ગ્રાહક નામ / નંબર / બિલ નં...',
+                            prefixIcon: const Icon(Icons.search, size: 20),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            filled: true,
+                            fillColor: AppColors.surfaceDark,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
                       ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
                   // Route Filter
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -312,9 +330,11 @@ class _BillingViewState extends ConsumerState<BillingView> {
                     ],
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 20),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 20),
 
             // Bills Data Table / List
             if (filteredBills.isEmpty)
@@ -411,6 +431,11 @@ class _BillingViewState extends ConsumerState<BillingView> {
   }
 
   Widget _buildBillRow(BuildContext context, Bill bill, dynamic firm) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth < 750) {
+      return _buildMobileBillCard(context, bill, firm);
+    }
+
     final statusColor = bill.status == 'paid'
         ? AppColors.successGreen
         : (bill.status == 'partial' ? AppColors.accentGold : AppColors.errorRed);
@@ -542,6 +567,170 @@ class _BillingViewState extends ConsumerState<BillingView> {
     );
   }
 
+  Widget _buildMobileBillCard(BuildContext context, Bill bill, dynamic firm) {
+    final statusColor = bill.status == 'paid'
+        ? AppColors.successGreen
+        : (bill.status == 'partial' ? AppColors.accentGold : AppColors.errorRed);
+    final statusText = bill.status == 'paid'
+        ? 'ચૂકવેલ'
+        : (bill.status == 'partial' ? 'અડધું ચૂકવેલ' : 'બાકી');
+
+    return Container(
+      padding: const EdgeInsets.all(14.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Row 1: Bill No pill, Customer Name, Status Badge
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTeal.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.primaryTeal.withOpacity(0.3)),
+                ),
+                child: Text('#${bill.billNo}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryTeal)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bill.customerName,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (bill.customerNo.isNotEmpty)
+                      Text('ગ્રાહક કોડ: #${bill.customerNo}', style: const TextStyle(fontSize: 11, color: AppColors.textMutedDark)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: statusColor.withOpacity(0.3)),
+                ),
+                child: Text(statusText, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusColor)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Row 2: Delivery details & Financial amounts
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceDark,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('વિતરણ: ${bill.deliveryDays} દિવસ  |  રજા: ${bill.vacationDays}', style: const TextStyle(fontSize: 11, color: AppColors.textMutedDark)),
+                    if (bill.pastBalance > 0)
+                      Text('પાછલી બાકી: ₹${bill.pastBalance.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, color: AppColors.errorRed)),
+                    if (bill.paymentReceived > 0)
+                      Text('જમા: ₹${bill.paymentReceived.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11, color: AppColors.successGreen)),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text('ચૂકવવાપાત્ર રકમ', style: TextStyle(fontSize: 10, color: AppColors.textMutedDark)),
+                    Text('₹${bill.finalPayable.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.accentGold)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Row 3: Action Buttons nicely distributed
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildMobileActionBtn(
+                icon: Icons.visibility,
+                label: 'વિગતો',
+                color: AppColors.primaryTeal,
+                onPressed: () => _showBillPreviewModal(context, bill, firm),
+              ),
+              _buildMobileActionBtn(
+                icon: Icons.image,
+                label: 'કાર્ડ',
+                color: AppColors.accentCyan,
+                onPressed: () {
+                  final cust = ref.read(customersProvider).cast<Customer?>().firstWhere((c) => c?.id == bill.customerId, orElse: () => null);
+                  final route = ref.read(routesProvider).cast<DeliveryRoute?>().firstWhere((r) => r?.id == bill.routeId, orElse: () => null);
+                  final salesman = route != null ? ref.read(salesmenProvider).cast<Salesman?>().firstWhere((s) => s?.id == route.salesmanId, orElse: () => null) : null;
+                  BillImageModal.show(context, bill: bill, firm: firm, customer: cust, route: route, salesman: salesman);
+                },
+              ),
+              _buildMobileActionBtn(
+                icon: Icons.chat,
+                label: 'WhatsApp',
+                color: AppColors.successGreen,
+                onPressed: () => _sendWhatsAppBill(context, bill, firm),
+              ),
+              _buildMobileActionBtn(
+                icon: Icons.qr_code,
+                label: 'UPI QR',
+                color: AppColors.accentGold,
+                onPressed: () {
+                  final cust = ref.read(customersProvider).cast<Customer?>().firstWhere((c) => c?.id == bill.customerId, orElse: () => null);
+                  DynamicUpiDialog.show(context, firm: firm, bill: bill, customer: cust);
+                },
+              ),
+              _buildMobileActionBtn(
+                icon: Icons.payments,
+                label: 'જમા કરો',
+                color: AppColors.successGreen,
+                onPressed: () => _showReceivePaymentModal(context, bill),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileActionBtn({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 16, color: color),
+            ),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
   // 1. Calculate Bills Dialog
   void _showCalculateBillsDialog(BuildContext context) {
     String format = 'sequential';
@@ -562,12 +751,13 @@ class _BillingViewState extends ConsumerState<BillingView> {
               Text('${_monthNamesGu[_selectedMonth - 1]} $_selectedYear - બિલ ગણતરી'),
             ],
           ),
-          content: SizedBox(
-            width: 480,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 const Text(
                   'બધા ગ્રાહકોના રોજિંદા પેપર દર, રજા કપાત, બોનસ પેપર્સ અને વિતરણ ચાર્જ ગણીને તાજા બિલો તૈયાર થશે.',
                   style: TextStyle(fontSize: 13, color: AppColors.textMutedDark),
@@ -622,6 +812,7 @@ class _BillingViewState extends ConsumerState<BillingView> {
               ],
             ),
           ),
+        ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('રદ કરો')),
             ElevatedButton.icon(
@@ -663,12 +854,13 @@ class _BillingViewState extends ConsumerState<BillingView> {
         backgroundColor: AppColors.cardDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         contentPadding: const EdgeInsets.all(24),
-        content: SizedBox(
-          width: 480,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Firm Info
               Center(
                 child: Column(
@@ -757,6 +949,7 @@ class _BillingViewState extends ConsumerState<BillingView> {
             ],
           ),
         ),
+      ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('બંધ કરો')),
           IconButton(
@@ -832,12 +1025,13 @@ class _BillingViewState extends ConsumerState<BillingView> {
               Text('ચૂકવણી જમા (${bill.customerName})'),
             ],
           ),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Text('કુલ બાકી રકમ: ₹${bill.balanceDue.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.errorRed)),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -867,6 +1061,7 @@ class _BillingViewState extends ConsumerState<BillingView> {
               ],
             ),
           ),
+        ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('રદ કરો')),
             ElevatedButton.icon(
@@ -918,12 +1113,13 @@ class _BillingViewState extends ConsumerState<BillingView> {
               Text('A4 બલ્ક બિલ પ્રિન્ટિંગ'),
             ],
           ),
-          content: SizedBox(
-            width: 480,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Text(
                   'પસંદ કરેલ ${bills.length} બિલો માટે પ્રિન્ટ ફોર્મેટ પસંદ કરો:',
                   style: const TextStyle(fontSize: 13, color: AppColors.textMutedDark),
@@ -991,6 +1187,7 @@ class _BillingViewState extends ConsumerState<BillingView> {
               ],
             ),
           ),
+        ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('રદ કરો')),
             ElevatedButton.icon(

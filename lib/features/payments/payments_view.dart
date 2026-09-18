@@ -82,43 +82,41 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header & Actions
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.successGreen.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.payments, color: AppColors.successGreen, size: 24),
+            LayoutBuilder(
+              builder: (context, headerConstraints) {
+                final isHeaderNarrow = headerConstraints.maxWidth < 750;
+                final headerInfo = Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.successGreen.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.payments, color: AppColors.successGreen, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'ચૂકવણી અને વસૂલાત (Payments & Collection)',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5),
                           ),
-                          const SizedBox(width: 12),
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'ચૂકવણી અને વસૂલાત (Payments & Collection)',
-                                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5),
-                              ),
-                              Text(
-                                'ગ્રાહકો પાસેથી મળેલ રોકડ / UPI પેમેન્ટ્સનું રજિસ્ટર',
-                                style: TextStyle(fontSize: 13, color: AppColors.textMutedDark),
-                              ),
-                            ],
+                          Text(
+                            'ગ્રાહકો પાસેથી મળેલ રોકડ / UPI પેમેન્ટ્સનું રજિસ્ટર',
+                            style: TextStyle(fontSize: 13, color: AppColors.textMutedDark),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-                Wrap(
+                    ),
+                  ],
+                );
+
+                final actionButtons = Wrap(
                   spacing: 12,
+                  runSpacing: 8,
                   children: [
                     // Dynamic UPI QR Button
                     OutlinedButton.icon(
@@ -145,8 +143,26 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
                       ),
                     ),
                   ],
-                ),
-              ],
+                );
+
+                if (isHeaderNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      headerInfo,
+                      const SizedBox(height: 14),
+                      actionButtons,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: headerInfo),
+                    actionButtons,
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 20),
 
@@ -179,63 +195,68 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.cardBorderDark),
               ),
-              child: Wrap(
-                spacing: 14,
-                runSpacing: 12,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  // Search Bar with Bill No support
-                  SizedBox(
-                    width: 280,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'શોધો (બિલ નં, ગ્રાહક, રસીદ)...',
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        filled: true,
-                        fillColor: AppColors.surfaceDark,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-
-                  // Collection Man Combo Filter
-                  SizedBox(
-                    width: 220,
-                    child: DropdownButtonFormField<int?>(
-                      value: _selectedCollectionManId,
-                      dropdownColor: const Color(0xFF1E2638),
-                      decoration: InputDecoration(
-                        labelText: '💼 ઉઘરાણીદાર',
-                        isDense: true,
-                        filled: true,
-                        fillColor: AppColors.surfaceDark,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      ),
-                      items: [
-                        const DropdownMenuItem<int?>(value: null, child: Text('બધા ઉઘરાણીદાર (All)')),
-                        ...collectionMen.map((cm) => DropdownMenuItem<int?>(value: cm.id, child: Text(cm.name))),
-                      ],
-                      onChanged: (v) => setState(() => _selectedCollectionManId = v),
-                    ),
-                  ),
-
-                  // Mode Chips
-                  Wrap(
-                    spacing: 8,
+              child: LayoutBuilder(
+                builder: (context, filterConstraints) {
+                  final isFilterNarrow = filterConstraints.maxWidth < 600;
+                  return Wrap(
+                    spacing: 14,
+                    runSpacing: 12,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      _buildModeFilterChip('all', 'બધા'),
-                      _buildModeFilterChip('cash', 'રોકડ (Cash)'),
-                      _buildModeFilterChip('gpay', 'Google Pay / UPI'),
-                      _buildModeFilterChip('phonepe', 'PhonePe'),
-                      _buildModeFilterChip('cheque', 'ચેક (Cheque)'),
+                      // Search Bar with Bill No support
+                      SizedBox(
+                        width: isFilterNarrow ? double.infinity : 280,
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'શોધો (બિલ નં, ગ્રાહક, રસીદ)...',
+                            prefixIcon: const Icon(Icons.search, size: 20),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            filled: true,
+                            fillColor: AppColors.surfaceDark,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+
+                      // Collection Man Combo Filter
+                      SizedBox(
+                        width: isFilterNarrow ? double.infinity : 220,
+                        child: DropdownButtonFormField<int?>(
+                          value: _selectedCollectionManId,
+                          dropdownColor: const Color(0xFF1E2638),
+                          decoration: InputDecoration(
+                            labelText: '💼 ઉઘરાણીદાર',
+                            isDense: true,
+                            filled: true,
+                            fillColor: AppColors.surfaceDark,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          ),
+                          items: [
+                            const DropdownMenuItem<int?>(value: null, child: Text('બધા ઉઘરાણીદાર (All)')),
+                            ...collectionMen.map((cm) => DropdownMenuItem<int?>(value: cm.id, child: Text(cm.name))),
+                          ],
+                          onChanged: (v) => setState(() => _selectedCollectionManId = v),
+                        ),
+                      ),
+
+                      // Mode Chips
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          _buildModeFilterChip('all', 'બધા'),
+                          _buildModeFilterChip('cash', 'રોકડ (Cash)'),
+                          _buildModeFilterChip('gpay', 'Google Pay / UPI'),
+                          _buildModeFilterChip('phonepe', 'PhonePe'),
+                          _buildModeFilterChip('cheque', 'ચેક (Cheque)'),
+                        ],
+                      ),
                     ],
-                  ),
-                ],
+                  );
+                },
               ),
             ),
             const SizedBox(height: 20),
@@ -456,7 +477,7 @@ class _PaymentsViewState extends ConsumerState<PaymentsView> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             child: Container(
-              width: 520,
+              constraints: const BoxConstraints(maxWidth: 520),
               padding: const EdgeInsets.all(22),
               child: SingleChildScrollView(
                 child: Column(

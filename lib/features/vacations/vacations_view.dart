@@ -79,8 +79,8 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
                 Text('🌴 નવી ગ્રાહક રજા (Customer Vacation)'),
               ],
             ),
-            content: SizedBox(
-              width: 520,
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -456,7 +456,7 @@ class _VacationsViewState extends State<VacationsView> with SingleTickerProvider
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             child: Container(
-              width: 680,
+              constraints: const BoxConstraints(maxWidth: 680),
               padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
