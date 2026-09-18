@@ -18,6 +18,18 @@ subprojects {
     }
 }
 
+// Force all subprojects (plugins like printing) to use compileSdk 34
+// This fixes: "AAPT: error: resource android:attr/lStar not found"
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                compileSdkVersion 34
+            }
+        }
+    }
+}
+
 rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
